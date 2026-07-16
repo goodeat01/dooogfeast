@@ -192,6 +192,30 @@
   #menuText:focus{outline:none;border-color:var(--green);box-shadow:0 0 0 3px rgba(78,115,152,.22)}
   #menuText:disabled{background:#F0EEEB;color:var(--muted);cursor:not-allowed;
     -webkit-text-fill-color:var(--ink);opacity:1}
+  .menu-wrap .field label{margin-bottom:5px}
+  #menuUrl{
+    font-family:inherit;font-size:15px;color:var(--ink);
+    background:#fff;border:1.5px solid var(--line);border-radius:14px;
+    padding:11px 12px;width:100%;transition:border-color .15s,box-shadow .15s;
+  }
+  #menuUrl:focus{outline:none;border-color:var(--green);box-shadow:0 0 0 3px rgba(78,115,152,.20)}
+  #menuUrl:disabled{background:#F0EEEB;color:var(--muted);cursor:not-allowed}
+  .mn-open{
+    display:flex;align-items:center;gap:9px;margin-bottom:12px;
+    background:var(--green-soft);border:1.5px solid transparent;border-radius:14px;
+    padding:12px 14px;text-decoration:none;transition:.15s;
+  }
+  .mn-open:hover{border-color:var(--green)}
+  .mn-open .t{font-size:14px;font-weight:900;color:var(--green);flex:none}
+  .mn-open .u{font-size:12px;color:var(--muted);min-width:0;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .photo-btn{
+    margin-top:10px;width:100%;font-family:inherit;font-size:14px;font-weight:900;
+    color:var(--green);background:var(--green-soft);border:1.5px solid transparent;
+    border-radius:14px;padding:11px;cursor:pointer;transition:.15s;
+  }
+  .photo-btn:hover{border-color:var(--green)}
+  .photo-btn:disabled{opacity:.5;cursor:not-allowed}
   #menuPreview{padding:0 16px 16px}
   #menuPreview:empty{display:none}
   .mn-title{
@@ -203,6 +227,11 @@
     padding:7px 2px;border-bottom:1px dashed var(--line);
   }
   .mn-line .d{font-size:15px;font-weight:500;min-width:0;word-break:break-word}
+  .mn-link{
+    color:var(--green);font-weight:700;text-decoration:none;
+    border-bottom:1.5px solid var(--green-soft);
+  }
+  .mn-link:hover{border-bottom-color:var(--green)}
   .mn-line .p{font-family:"Fredoka","Noto Sans TC",sans-serif;font-size:15px;font-weight:700;
     color:var(--green);flex:none}
   .mn-img{
@@ -495,7 +524,17 @@
         <button class="mini-lock" id="lockMenuBtn">🔓 鎖定</button>
       </div>
       <div class="menu-wrap">
-        <textarea id="menuText" placeholder="把菜單貼進來,例如:&#10;滷肉飯 60&#10;燙青菜 40&#10;&#10;也可以貼菜單照片的網址,會直接顯示出來"></textarea>
+        <div class="field full" style="margin:0 0 12px">
+          <label for="menuUrl">菜單網址</label>
+          <input id="menuUrl" type="url" inputmode="url" placeholder="https://… 貼上店家菜單連結" autocomplete="off">
+        </div>
+        <div class="field full" style="margin:0 0 0">
+          <label for="menuText">菜單內容</label>
+        </div>
+        <textarea id="menuText" placeholder="把菜單貼進來,例如:&#10;滷肉飯 60&#10;燙青菜 40&#10;&#10;也可以貼網址,或直接上傳菜單照片"></textarea>
+        <button class="photo-btn" id="photoBtn">📷 上傳菜單照片</button>
+        <input type="file" id="photoInput" accept="image/*" hidden>
+        <div class="conn-hint">貼網址會變成可點的連結,圖片網址則直接顯示成照片。上傳的照片會存到你的 Google 雲端硬碟,刪掉那行網址就從菜單移除。</div>
       </div>
       <div id="menuPreview"></div>
     </div>
@@ -1152,6 +1191,8 @@
     mb.textContent = lockMenu ? "🔒 已鎖定" : "🔓 鎖定";
     mb.classList.toggle("on", lockMenu);
     $("menuText").disabled = lockMenu;
+    $("menuUrl").disabled = lockMenu;
+    $("photoBtn").disabled = lockMenu;
   }
 
   /* ── 聚餐地點與時間 ─────────────────
@@ -1183,6 +1224,8 @@
   /* ── 菜單 ─────────────────────────── */
   var menuTimer = null;
   var IMG_RE = /^https?:\/\/\S+\.(png|jpe?g|webp|gif|avif)(\?\S*)?$/i;
+  var DRIVE_RE = /^https?:\/\/(lh3\.googleusercontent\.com\/d\/|drive\.google\.com\/)\S+$/i;
+  function isImgLine(l){ return IMG_RE.test(l) || DRIVE_RE.test(l); }
 
   function scheduleMenuSave(){
     clearTimeout(menuTimer);
@@ -1190,34 +1233,77 @@
   }
   function saveMenu(){
     var text = $("menuText").value;
+    var url  = $("menuUrl").value.trim();
     if(online){
-      mutate({ action:"menu", bill:billCode, text:text })
+      mutate({ action:"menu", bill:billCode, text:text, url:url })
         .catch(function(){ toast("菜單同步失敗"); });
     }else{
-      try{ localStorage.setItem("feast-menu", text); }catch(e){}
+      try{
+        localStorage.setItem("feast-menu", text);
+        localStorage.setItem("feast-menu-url", url);
+      }catch(e){}
     }
   }
-  function fillMenu(text){
+  function fillMenu(text, url){
     if(document.activeElement !== $("menuText")) $("menuText").value = text || "";
+    if(document.activeElement !== $("menuUrl"))  $("menuUrl").value  = url  || "";
     renderMenu();
   }
   /* 每行拆成「品名 + 價格」;整行是圖片網址就直接顯示圖片 */
+  /* 把行內的網址轉成可點連結。太長的網址只顯示網域,免得撐破版面 */
+  var URL_RE = /https?:\/\/[^\s<>"']+/g;
+  function shortUrl(u){
+    if(u.length <= 40) return u;
+    var m = u.match(/^https?:\/\/([^\/]+)(\/.*)?$/);
+    return m ? m[1] + (m[2] && m[2] !== "/" ? "/…" : "") : u.slice(0, 38) + "…";
+  }
+  function linkify(text){
+    var out = "", last = 0, m;
+    URL_RE.lastIndex = 0;
+    while((m = URL_RE.exec(text))){
+      out += esc(text.slice(last, m.index));
+      out += '<a class="mn-link" href="'+esc(m[0])+'" target="_blank" rel="noopener noreferrer">'+
+             esc(shortUrl(m[0]))+'</a>';
+      last = m.index + m[0].length;
+    }
+    return out + esc(text.slice(last));
+  }
+
   function renderMenu(){
     var raw = $("menuText").value || "";
     var box = $("menuPreview");
+    var url = $("menuUrl").value.trim();
     var lines = raw.split(/\r?\n/).map(function(l){ return l.trim(); })
                    .filter(function(l){ return l; });
-    if(!lines.length){ box.innerHTML = ""; return; }
+    if(!lines.length && !url){ box.innerHTML = ""; return; }
+
     var html = '<div class="mn-title">預覽</div>';
+    if(/^https?:\/\//i.test(url)){
+      html += '<a class="mn-open" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">'+
+                '<span class="t">🔗 開啟菜單</span>'+
+                '<span class="u">'+esc(url.replace(/^https?:\/\//,""))+'</span>'+
+              '</a>';
+    }else if(url){
+      html += '<div class="mn-line"><span class="d">'+esc(url)+'</span></div>';
+    }
     lines.forEach(function(l){
-      if(IMG_RE.test(l)){
+      if(isImgLine(l)){
         html += '<img class="mn-img" src="'+esc(l)+'" alt="菜單" loading="lazy">';
         return;
       }
-      var m = l.match(/^(.*?)[\s\.\-–—:：]*\$?\s*(\d+(?:\.\d+)?)\s*(?:元)?$/);
-      if(m && m[1].trim()){
-        html += '<div class="mn-line"><span class="d">'+esc(m[1].trim())+
-                '</span><span class="p">$'+money(parseFloat(m[2]))+'</span></div>';
+      // 含網址的行不做價格判讀,否則網址結尾的數字會被當成價格
+      if(/https?:\/\//i.test(l)){
+        html += '<div class="mn-line"><span class="d">'+linkify(l)+'</span></div>';
+        return;
+      }
+      // 「訂位電話 02-1234-5678」這類不該被當成價格:
+      // 品名以數字結尾、又用連字號接數字的,幾乎都是電話或日期
+      var m = l.match(/^(.*?)([\s\.\-–—:：]*)\$?\s*(\d+(?:\.\d+)?)\s*(?:元)?$/);
+      var nm = m && m[1].trim();
+      var isPhoneish = nm && /\d$/.test(nm) && /[-–—]/.test(m[2]);
+      if(nm && !isPhoneish){
+        html += '<div class="mn-line"><span class="d">'+esc(nm)+
+                '</span><span class="p">$'+money(parseFloat(m[3]))+'</span></div>';
       }else{
         html += '<div class="mn-line"><span class="d">'+esc(l)+'</span></div>';
       }
@@ -1310,6 +1396,53 @@
     k = 0;
     while(rem < 0){ floors[order[n - 1 - (k % n)].i]--; rem++; k++; }
     return floors;
+  }
+
+  /* 照片先在瀏覽器縮到最長邊 1400px、轉 JPEG,
+     原始照片動輒好幾 MB,直接上傳會很慢也容易失敗 */
+  function compressImage(file, maxDim, quality){
+    return new Promise(function(resolve, reject){
+      var url = URL.createObjectURL(file);
+      var img = new Image();
+      img.onload = function(){
+        var scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+        var cw = Math.round(img.width * scale), ch = Math.round(img.height * scale);
+        var c = document.createElement("canvas");
+        c.width = cw; c.height = ch;
+        c.getContext("2d").drawImage(img, 0, 0, cw, ch);
+        URL.revokeObjectURL(url);
+        c.toBlob(function(blob){
+          if(!blob){ reject(new Error("compress failed")); return; }
+          var fr = new FileReader();
+          fr.onload = function(){ resolve(String(fr.result).split(",")[1]); };
+          fr.onerror = function(){ reject(new Error("read failed")); };
+          fr.readAsDataURL(blob);
+        }, "image/jpeg", quality);
+      };
+      img.onerror = function(){ URL.revokeObjectURL(url); reject(new Error("not an image")); };
+      img.src = url;
+    });
+  }
+
+  function uploadPhoto(file){
+    var btn = $("photoBtn");
+    btn.disabled = true;
+    btn.textContent = "壓縮中…";
+    compressImage(file, 1400, 0.72)
+      .then(function(b64){
+        if(b64.length > 6000000) throw new Error("too big");
+        btn.textContent = "上傳中…";
+        return mutate({ action:"photo", bill:billCode, data:b64,
+                        mime:"image/jpeg", name:"menu-"+Date.now()+".jpg" });
+      })
+      .then(function(){ toast("照片已加入菜單"); })
+      .catch(function(e){
+        toast(e && e.message === "too big" ? "照片太大,請換一張" : "上傳失敗,請再試一次");
+      })
+      .then(function(){
+        btn.disabled = lockMenu;
+        btn.textContent = "📷 上傳菜單照片";
+      });
   }
 
   function rowHtml(r){
@@ -1459,7 +1592,7 @@
 
     var sig = JSON.stringify([data.orders, data.svc, data.seats, data.lockOrder,
                               data.lockSeat, data.lockInfo, data.lockMenu, data.lockName,
-                              data.place, data.time, data.menu]);
+                              data.place, data.time, data.menu, data.menuUrl]);
     if(sig === lastSig) return;
     lastSig = sig;
 
@@ -1470,7 +1603,7 @@
     lockName = !!data.lockName;
     applyLockUI();
     fillInfo(data.place, data.time);
-    fillMenu(data.menu);
+    fillMenu(data.menu, data.menuUrl);
 
     records = (data.orders || []).map(function(x){
       return { id:String(x.id), table:x.table, name:x.name, item:x.item, amt:Number(x.amt) };
@@ -1580,6 +1713,18 @@
   });
   $("menuText").addEventListener("input", function(){ renderMenu(); scheduleMenuSave(); });
   $("menuText").addEventListener("blur", saveMenu);
+  $("menuUrl").addEventListener("input", function(){ renderMenu(); scheduleMenuSave(); });
+  $("menuUrl").addEventListener("blur", saveMenu);
+  $("photoBtn").addEventListener("click", function(){
+    if(lockMenu){ toast("菜單已鎖定,需解鎖才能上傳"); return; }
+    if(!online){ toast("未連線,無法上傳照片"); return; }
+    $("photoInput").click();
+  });
+  $("photoInput").addEventListener("change", function(){
+    var f = this.files && this.files[0];
+    this.value = "";                       // 清掉才能連續上傳同一張
+    if(f) uploadPhoto(f);
+  });
   $("passOk").addEventListener("click", submitPass);
   $("passCancel").addEventListener("click", closePass);
   $("passMask").addEventListener("click", function(e){ if(e.target === this) closePass(); });
@@ -1636,7 +1781,7 @@
     lockMenu  = localStorage.getItem("feast-lock-menu") === "1";
     if(!backendReady()){
       fillInfo(localStorage.getItem("feast-place"), localStorage.getItem("feast-time"));
-      fillMenu(localStorage.getItem("feast-menu"));
+      fillMenu(localStorage.getItem("feast-menu"), localStorage.getItem("feast-menu-url"));
     }
   }catch(e){}
   applyLockUI();
