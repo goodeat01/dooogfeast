@@ -1437,7 +1437,14 @@
       })
       .then(function(){ toast("照片已加入菜單"); })
       .catch(function(e){
-        toast(e && e.message === "too big" ? "照片太大,請換一張" : "上傳失敗,請再試一次");
+        var msg = e && e.message ? e.message : "";
+        if(msg === "too big"){ toast("照片太大,請換一張"); return; }
+        if(msg === "not an image"){ toast("這不是圖片檔"); return; }
+        if(/permission|authoriz|scope|drive/i.test(msg)){
+          toast("雲端硬碟未授權 — 請到 Apps Script 執行一次 setup");
+          return;
+        }
+        toast(msg ? ("上傳失敗:" + msg.slice(0, 40)) : "上傳失敗,請確認連線");
       })
       .then(function(){
         btn.disabled = lockMenu;
@@ -1566,9 +1573,14 @@
     lastMutation = Date.now();
     pendingWrites++;
     var mySeq = ++writeSeq;
+    var settled = false;
+    function done(){ if(!settled){ settled = true; pendingWrites--; } }
+
+    // 用 then 的兩個參數而非 .catch,否則成功分支自己丟出的錯會被當成失敗再扣一次計數
     return apiPost(payload).then(function(data){
-      pendingWrites--;
+      done();
       lastMutation = Date.now();
+      if(data && data.error) throw new Error(data.error);   // 伺服器回報的真正原因
       if(mySeq < lastAppliedSeq){                        // 過期回應 → 不套用
         if(pendingWrites === 0){ lastRev = ""; poll(); } // 已無寫入中 → 立刻補抓最新狀態
         return data;
@@ -1577,8 +1589,8 @@
       if(data && data.rev){ lastRev = String(data.rev); lastFullAt = Date.now(); }
       applyData(data);
       return data;
-    }).catch(function(err){
-      pendingWrites--;
+    }, function(err){
+      done();
       throw err;
     });
   }
