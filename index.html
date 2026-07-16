@@ -88,6 +88,10 @@
   .field{display:flex;flex-direction:column;gap:5px}
   .field label{font-size:12px;font-weight:700;color:var(--muted);padding-left:2px}
   .field label em{color:var(--danger);font-style:normal;font-weight:900}
+  .field label .note{
+    font-weight:700;color:var(--amber-deep);background:#F5EBDD;
+    border-radius:10px;padding:1px 7px;margin-left:6px;font-size:11px;
+  }
   .field input{
     font-family:inherit;font-size:16px;color:var(--ink);
     background:#fff;border:1.5px solid var(--line);border-radius:14px;
@@ -468,7 +472,7 @@
       </div>
       <div class="conn-hint" id="orderHint" style="margin-top:9px"></div>
       <div class="field full">
-        <label for="fItem">餐點內容 <em>*</em></label>
+        <label for="fItem">餐點內容 <em>*</em><span class="note">請用繁體字</span></label>
         <input id="fItem" placeholder="滷肉飯、燙青菜…" autocomplete="off">
       </div>
       <div class="field full">
@@ -620,7 +624,7 @@
       </div>
     </div>
     <div class="field full">
-      <label for="eItem">餐點內容</label>
+      <label for="eItem">餐點內容<span class="note">請用繁體字</span></label>
       <input id="eItem" autocomplete="off">
     </div>
     <div class="field full">
