@@ -216,11 +216,13 @@
   }
   .photo-btn:hover{border-color:var(--green)}
   .photo-btn:disabled{opacity:.5;cursor:not-allowed}
-  #menuPreview{padding:0 16px 16px}
+  #menuPreview{padding:14px 16px 6px}
+  /* 預覽移到上方後,分隔線改畫在下方的編輯區,且只在有預覽時才出現 */
+  #menuPreview:not(:empty) + .menu-wrap{border-top:1px dashed var(--line)}
   #menuPreview:empty{display:none}
   .mn-title{
     font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.1em;
-    border-top:1px dashed var(--line);padding-top:12px;margin-bottom:8px;
+    margin-bottom:8px;
   }
   .mn-line{
     display:flex;justify-content:space-between;gap:12px;align-items:baseline;
@@ -523,6 +525,7 @@
         <span class="count" id="menuLbl">貼上菜單</span>
         <button class="mini-lock" id="lockMenuBtn">🔓 鎖定</button>
       </div>
+      <div id="menuPreview"></div>
       <div class="menu-wrap">
         <div class="field full" style="margin:0 0 12px">
           <label for="menuUrl">菜單網址</label>
@@ -536,7 +539,6 @@
         <input type="file" id="photoInput" accept="image/*" hidden>
         <div class="conn-hint">貼網址會變成可點的連結,圖片網址則直接顯示成照片。上傳的照片會存到你的 Google 雲端硬碟,刪掉那行網址就從菜單移除。</div>
       </div>
-      <div id="menuPreview"></div>
     </div>
   </div>
 
