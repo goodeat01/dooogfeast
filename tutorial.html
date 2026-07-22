@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>吃喝二字 · 使用教學</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#FDFCFB; --ink:#3F4A57; --blue:#4E7398; --blue-deep:#3F6288;
+    --soft:#E7EDF3; --amber:#C9944F; --amber-deep:#946235; --rose:#A94E5D;
+    --line:#E5E3DE; --muted:#67748A; --press:#DCE2E8;
+    --sage:#7A9D86;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:"Noto Sans TC",system-ui,sans-serif;color:var(--ink);
+    background:#E6E9EC;min-height:100vh;display:flex;flex-direction:column;
+    align-items:center;padding:20px 16px 0;-webkit-font-smoothing:antialiased;
+  }
+  .mono{font-family:"Fredoka","Noto Sans TC",sans-serif;font-variant-numeric:tabular-nums}
+  .wrap{width:100%;max-width:460px;display:flex;flex-direction:column;flex:1}
+
+  header{text-align:center;margin-bottom:14px}
+  .kicker{
+    display:inline-block;font-size:11px;letter-spacing:.35em;font-weight:900;
+    color:#FFFBF2;background:var(--rose);border-radius:20px;
+    padding:4px 10px 4px 15px;transform:rotate(-2deg);margin-bottom:10px;
+  }
+  header h1{font-size:24px;font-weight:900;letter-spacing:.06em}
+
+  /* 進度點 */
+  .dots{display:flex;gap:6px;justify-content:center;margin-bottom:14px;flex-wrap:wrap}
+  .dots i{width:8px;height:8px;border-radius:50%;background:var(--line);transition:.3s;cursor:pointer}
+  .dots i.on{background:var(--blue);transform:scale(1.3)}
+  .dots i.done{background:var(--blue-deep)}
+
+  /* 舞台 */
+  .stage{
+    background:var(--paper);border:1.5px solid var(--line);border-radius:24px;
+    box-shadow:0 3px 0 #ECEAE5,0 12px 30px rgba(80,90,105,.12);
+    padding:24px 22px;min-height:290px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    position:relative;overflow:hidden;
+  }
+  .scene{width:100%;display:flex;flex-direction:column;align-items:center;
+    animation:fade .5s ease;text-align:center}
+  @keyframes fade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  .scene .num{font-size:12px;font-weight:900;color:var(--amber-deep);letter-spacing:.2em;margin-bottom:10px}
+  .scene h2{font-size:20px;font-weight:900;margin-bottom:16px;color:var(--blue-deep)}
+
+  /* 各步的示意畫面 */
+  .demo{width:100%;max-width:300px;margin:0 auto}
+  .badge{display:inline-flex;align-items:center;gap:6px;background:var(--paper);
+    border:2px solid var(--line);border-radius:20px;padding:5px 12px;font-size:13px;font-weight:700;color:var(--blue)}
+  .badge .g{width:7px;height:7px;border-radius:50%;background:var(--sage);box-shadow:0 0 0 3px rgba(122,157,134,.28)}
+  .phones{display:flex;gap:10px;justify-content:center;margin-top:14px}
+  .phone{width:64px;height:104px;border:2.5px solid var(--blue);border-radius:12px;
+    background:var(--soft);display:flex;flex-direction:column;gap:4px;padding:9px 7px;position:relative}
+  .phone .l{height:7px;border-radius:3px;background:#cdd8e6}
+  .phone .l.a{width:70%} .phone .l.b{width:90%} .phone .l.c{width:50%}
+  .phone::after{content:"📱";position:absolute;bottom:-9px;left:50%;transform:translateX(-50%);font-size:14px}
+  .sync-arrow{align-self:center;font-size:22px;color:var(--blue);animation:pulse 1.4s infinite}
+  @keyframes pulse{50%{opacity:.4}}
+
+  .table-demo{width:150px;height:150px;position:relative;margin:6px auto 0}
+  .table-demo .center{position:absolute;left:50%;top:50%;width:56px;height:56px;
+    transform:translate(-50%,-50%);border-radius:50%;background:var(--soft);
+    border:2px dashed var(--blue);display:flex;align-items:center;justify-content:center;
+    font-weight:900;color:var(--blue);font-size:15px}
+  .seat{position:absolute;width:34px;height:34px;border-radius:50%;transform:translate(-50%,-50%);
+    border:2px solid var(--line);background:#fff;display:flex;align-items:center;justify-content:center;
+    font-size:11px;font-weight:700;color:var(--muted)}
+  .seat.f{background:var(--blue);border-color:var(--blue-deep);color:#FFFBF2;font-size:10px}
+  .seat.pick{animation:tap 1.2s infinite}
+  @keyframes tap{0%,100%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-50%,-50%) scale(1.18)}}
+
+  .pill{background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:9px 12px;
+    font-size:14px;font-weight:700;display:flex;justify-content:space-between;align-items:center;margin-top:8px;text-align:left}
+  .pill .arw{color:var(--muted);font-size:12px}
+  .pill.hl{border-color:var(--blue);box-shadow:0 0 0 3px rgba(78,115,152,.15)}
+  .pill .amt{font-family:"Fredoka",sans-serif;color:var(--amber-deep);font-weight:700}
+  .fee{margin-top:10px;font-size:13px;color:var(--muted)}
+  .sub{display:flex;justify-content:space-between;font-size:14px;font-weight:700;
+    background:var(--soft);border-radius:10px;padding:8px 12px;margin-top:7px}
+  .sub b{color:var(--blue-deep)}
+  .lock-demo{font-size:52px;margin:6px 0}
+  .keys{display:flex;gap:6px;justify-content:center;margin-top:6px}
+  .keys span{width:30px;height:36px;border:2px solid var(--line);border-radius:8px;
+    display:flex;align-items:center;justify-content:center;font-family:"Fredoka",sans-serif;
+    font-weight:700;color:var(--blue);background:#fff}
+  .big-emoji{font-size:56px;margin-bottom:6px}
+
+  /* 字幕 */
+  .caption{
+    background:var(--ink);color:#FDFCFB;border-radius:16px;padding:16px 18px;
+    margin-top:14px;font-size:15.5px;line-height:1.7;font-weight:500;min-height:64px;
+    display:flex;align-items:center;justify-content:center;text-align:center;
+  }
+
+  /* 控制列 */
+  .controls{display:flex;align-items:center;gap:10px;justify-content:center;
+    padding:16px 0 22px;position:sticky;bottom:0}
+  .controls button{
+    font-family:inherit;border:1.5px solid var(--line);background:var(--paper);
+    border-radius:14px;cursor:pointer;box-shadow:0 3px 0 var(--press);
+    transition:transform .06s,box-shadow .06s;color:var(--ink);
+  }
+  .controls button:active{transform:translateY(3px);box-shadow:0 0 0 var(--press)}
+  .controls .side{width:48px;height:48px;font-size:18px}
+  .controls .play{width:64px;height:64px;font-size:26px;background:var(--blue);
+    border-color:var(--blue);color:#FFFBF2;box-shadow:0 3px 0 var(--blue-deep)}
+  .controls .sound{width:48px;height:48px;font-size:18px}
+  .controls .sound.off{opacity:.5}
+  .controls button:disabled{opacity:.35;cursor:not-allowed}
+
+  /* 封面 / 結束覆蓋層 */
+  .cover{position:absolute;inset:0;background:var(--paper);border-radius:22px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:16px;padding:28px;text-align:center;z-index:5}
+  .cover .stamp{font-size:11px;letter-spacing:.35em;font-weight:900;color:#FFFBF2;
+    background:var(--rose);border-radius:20px;padding:4px 10px 4px 15px;transform:rotate(-2deg)}
+  .cover h2{font-size:26px;font-weight:900;letter-spacing:.08em}
+  .cover p{font-size:14px;color:var(--muted);line-height:1.7;max-width:280px}
+  .cover .start{font-family:inherit;font-size:17px;font-weight:900;color:#FFFBF2;
+    background:var(--blue);border:none;border-radius:16px;padding:14px 30px;cursor:pointer;
+    box-shadow:0 4px 0 var(--blue-deep);transition:transform .06s,box-shadow .06s;letter-spacing:.05em}
+  .cover .start:active{transform:translateY(4px);box-shadow:0 0 0 var(--blue-deep)}
+  .cover.hidden{display:none}
+  .voice-note{font-size:12px;color:var(--amber-deep);min-height:16px}
+
+  @media(prefers-reduced-motion:reduce){
+    .scene,.sync-arrow,.seat.pick{animation:none}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="kicker">使用教學</div>
+    <h1>吃喝二字 怎麼用</h1>
+  </header>
+
+  <div class="dots" id="dots"></div>
+
+  <div class="stage">
+    <div class="scene" id="scene"></div>
+
+    <!-- 封面 -->
+    <div class="cover" id="cover">
+      <span class="stamp">人生大事</span>
+      <h2>吃喝二字</h2>
+      <p>三分鐘看懂怎麼用 —— 從排座位、點餐到分帳,大家一起連線同步。</p>
+      <button class="start" id="startBtn">▶ 開始教學</button>
+      <div class="voice-note" id="voiceNote"></div>
+    </div>
+  </div>
+
+  <div class="caption" id="caption">準備好了嗎?按開始,我一步步帶你走一遍。</div>
+
+  <div class="controls">
+    <button class="side" id="prevBtn" title="上一步">⏮</button>
+    <button class="play" id="playBtn" title="播放/暫停">▶</button>
+    <button class="side" id="nextBtn" title="下一步">⏭</button>
+    <button class="sound" id="soundBtn" title="聲音">🔊</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var $ = function(id){ return document.getElementById(id); };
+  var synth = window.speechSynthesis || null;
+
+  var scenes = [
+    { h:"大家一起連線",
+      cap:"最重要的一件事:所有人打開同一個網址,就即時共用同一份帳單。誰新增、誰修改,其他人的手機幾秒內就會同步。",
+      demo:'<span class="badge"><span class="g"></span>已同步</span>'+
+           '<div class="phones"><div class="phone"><div class="l a"></div><div class="l b"></div><div class="l c"></div></div>'+
+           '<div class="sync-arrow">⇄</div>'+
+           '<div class="phone"><div class="l b"></div><div class="l a"></div><div class="l c"></div></div></div>' },
+
+    { h:"先排座位圖",
+      cap:"第一步到「座位圖」,輸入桌號跟座位數,系統就會畫出一張圓桌,座位平均排在四周。",
+      demo:'<div class="table-demo"><div class="center">1</div>'+seatsRing(6, -1)+'</div>' },
+
+    { h:"點座位填姓名",
+      cap:"點任何一個座位,填上這個人的名字。填過的名字很重要 —— 待會點餐就能直接選,不用再打一次。",
+      demo:'<div class="table-demo"><div class="center">1</div>'+seatsRing(6, 0)+'</div>' },
+
+    { h:"點餐:選桌、選人",
+      cap:"到「點餐」頁,桌號跟姓名都是下拉選單,直接從座位圖帶出來 —— 選桌號,再選那一桌的人,兩下就好。",
+      demo:'<div class="pill"><span>桌號</span><span class="arw">桌號 1 ▾</span></div>'+
+           '<div class="pill hl"><span>姓名</span><span class="arw">小美 ▾</span></div>' },
+
+    { h:"餐點從菜單選",
+      cap:"餐點內容也能從菜單直接選,選到就自動帶出金額,不用手打。菜單沒有的臨時菜色,照樣可以自己輸入。",
+      demo:'<div class="pill"><span>餐點內容</span><span class="arw">滷肉飯 ▾</span></div>'+
+           '<div class="pill hl"><span>金額</span><span class="amt">$60</span></div>' },
+
+    { h:"服務費與分帳",
+      cap:"勾一下服務費,各桌小計會自動含進去。切換依桌號或依姓名,一眼看出每桌、每個人該付多少,金額加起來剛好等於總計。",
+      demo:'<label class="pill hl" style="cursor:default"><span>☑ 加收服務費 10%</span><span class="amt">+$210</span></label>'+
+           '<div class="sub"><span>桌號 1 小計含服務費</span><b>$1,320</b></div>'+
+           '<div class="sub"><span>桌號 2 小計含服務費</span><b>$990</b></div>' },
+
+    { h:"菜單頁",
+      cap:"菜單頁可以貼菜色價格、貼店家連結,也能直接上傳菜單照片,大家即時看到同一份菜單。",
+      demo:'<div class="big-emoji">📋</div>'+
+           '<div class="pill"><span>滷肉飯</span><span class="amt">$60</span></div>'+
+           '<div class="pill"><span>🔗 開啟菜單</span><span class="arw">foodpanda…</span></div>' },
+
+    { h:"鎖定與密碼",
+      cap:"排好、點完之後,可以把座位、點餐、菜單分別鎖起來,避免有人不小心改到。要解鎖或清空,得輸入密碼才行。",
+      demo:'<div class="lock-demo">🔒</div>'+
+           '<div class="keys"><span>•</span><span>•</span><span>•</span><span>•</span></div>' },
+
+    { h:"開始用吧!",
+      cap:"就這樣!流程是:排座位、填名字、點餐、看分帳。大家連著同一個網址,邊吃邊記,散場前帳就分好了。",
+      demo:'<div class="big-emoji">🍽️</div>' , end:true }
+  ];
+
+  function seatsRing(n, filledIdx){
+    var html = "", R = 58, cx = 75, cy = 75;
+    for(var i=0;i<n;i++){
+      var a = (Math.PI*2*i/n) - Math.PI/2;
+      var x = cx + R*Math.cos(a), y = cy + R*Math.sin(a);
+      var isF = (i <= filledIdx);
+      var pick = (i === filledIdx);
+      var names = ["小明","小美","阿華","阿宏","小芳","大雄"];
+      var label = isF ? names[i] : (i+1);
+      html += '<div class="seat'+(isF?' f':'')+(pick?' pick':'')+'" style="left:'+x+'px;top:'+y+'px">'+label+'</div>';
+    }
+    return html;
+  }
+
+  var idx = -1, playing = false, muted = false, started = false;
+  var advTimer = null, voice = null, noVoice = false;
+
+  function pickVoice(){
+    if(!synth) return null;
+    var vs = synth.getVoices() || [];
+    return vs.filter(function(v){ return /zh[-_]TW/i.test(v.lang); })[0]
+        || vs.filter(function(v){ return /zh[-_]HK/i.test(v.lang); })[0]
+        || vs.filter(function(v){ return /^zh/i.test(v.lang); })[0]
+        || vs.filter(function(v){ return /^cmn/i.test(v.lang); })[0]
+        || null;
+  }
+  function checkVoice(){
+    voice = pickVoice();
+    if(synth && !voice){
+      noVoice = true; muted = true;
+      $("soundBtn").classList.add("off");
+      $("soundBtn").textContent = "🔇";
+      $("voiceNote").textContent = "此裝置沒有中文語音,將以字幕播放";
+    }
+  }
+  if(synth){
+    checkVoice();
+    if(synth.onvoiceschanged !== undefined){
+      synth.onvoiceschanged = function(){ if(!voice) checkVoice(); };
+    }
+  }else{
+    noVoice = true; muted = true;
+    $("soundBtn").classList.add("off"); $("soundBtn").textContent = "🔇";
+  }
+
+  function buildDots(){
+    var d = $("dots"); d.innerHTML = "";
+    scenes.forEach(function(_, i){
+      var el = document.createElement("i");
+      el.addEventListener("click", function(){ playing = false; goto(i); pause(); });
+      d.appendChild(el);
+    });
+  }
+  function paintDots(){
+    var kids = $("dots").children;
+    for(var i=0;i<kids.length;i++){
+      kids[i].className = i === idx ? "on" : (i < idx ? "done" : "");
+    }
+  }
+
+  function estimate(text){ return Math.max(3800, text.length * 175 + 1100); }
+
+  function narrate(text, onDone){
+    clearTimeout(advTimer);
+    var done = false;
+    function finish(){ if(!done){ done = true; onDone(); } }
+    if(muted || !synth || noVoice){
+      advTimer = setTimeout(finish, estimate(text));
+      return;
+    }
+    try{ synth.cancel(); }catch(e){}
+    var u = new SpeechSynthesisUtterance(text);
+    u.lang = "zh-TW"; u.rate = 0.98; u.pitch = 1;
+    if(voice) u.voice = voice;
+    u.onend = finish;
+    u.onerror = finish;
+    try{ synth.speak(u); }catch(e){ advTimer = setTimeout(finish, estimate(text)); return; }
+    advTimer = setTimeout(finish, estimate(text) * 1.9);   // 保險:onend 沒觸發也會前進
+  }
+
+  function render(){
+    var s = scenes[idx];
+    $("cover").classList.add("hidden");
+    $("scene").innerHTML =
+      '<div class="num">STEP '+(idx+1)+' / '+scenes.length+'</div>'+
+      '<h2>'+s.h+'</h2>'+
+      '<div class="demo">'+s.demo+'</div>';
+    $("caption").textContent = s.cap;
+    paintDots();
+    $("prevBtn").disabled = idx <= 0;
+    $("nextBtn").disabled = idx >= scenes.length - 1;
+  }
+
+  function goto(i){
+    idx = Math.max(0, Math.min(scenes.length - 1, i));
+    render();
+    if(playing){
+      narrate(scenes[idx].cap, function(){
+        if(playing && idx < scenes.length - 1){ goto(idx + 1); }
+        else { playing = false; updatePlay(); }   // 播到最後停下
+      });
+    }
+    updatePlay();
+  }
+
+  function play(){
+    started = true;
+    playing = true;
+    updatePlay();
+    if(idx < 0) idx = 0;
+    goto(idx);
+  }
+  function pause(){
+    playing = false;
+    clearTimeout(advTimer);
+    if(synth){ try{ synth.cancel(); }catch(e){} }
+    updatePlay();
+  }
+  function updatePlay(){ $("playBtn").textContent = playing ? "⏸" : "▶"; }
+
+  // 控制
+  $("startBtn").addEventListener("click", play);
+  $("playBtn").addEventListener("click", function(){
+    if(!started || idx < 0){ play(); return; }
+    playing ? pause() : play();
+  });
+  $("prevBtn").addEventListener("click", function(){ var was = playing; pause(); goto(idx - 1); if(was) play(); });
+  $("nextBtn").addEventListener("click", function(){ var was = playing; pause(); goto(idx + 1); if(was) play(); });
+  $("soundBtn").addEventListener("click", function(){
+    if(noVoice){ return; }
+    muted = !muted;
+    this.classList.toggle("off", muted);
+    this.textContent = muted ? "🔇" : "🔊";
+    if(muted && synth){ try{ synth.cancel(); }catch(e){} }
+    // 開聲音時,若正在播,從當前步重念
+    if(!muted && playing){ narrate(scenes[idx].cap, function(){
+      if(playing && idx < scenes.length - 1) goto(idx + 1); else { playing = false; updatePlay(); }
+    }); }
+  });
+
+  buildDots();
+})();
+</script>
+</body>
+</html>
