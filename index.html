@@ -408,6 +408,18 @@
     width:24px;height:24px;border-radius:7px;font-size:13px;transition:.15s;
   }
   .tbl-head .x:hover{background:#F6E7E9;color:var(--danger)}
+  .tbl-head .n.edit{
+    border:none;background:transparent;cursor:pointer;font-family:inherit;
+    display:inline-flex;align-items:center;text-align:left;padding:2px 4px;border-radius:8px;
+  }
+  .tbl-head .n.edit:hover{background:var(--green-soft)}
+  .tbl-ops{display:flex;align-items:center;gap:2px;flex:none}
+  .tbl-ops .mv{
+    border:1.5px solid var(--line);background:#fff;color:var(--muted);cursor:pointer;
+    width:24px;height:24px;border-radius:7px;font-size:9px;line-height:1;transition:.15s;
+  }
+  .tbl-ops .mv:hover:not(:disabled){border-color:var(--green);color:var(--green)}
+  .tbl-ops .mv:disabled{opacity:.3;cursor:not-allowed}
   .round{
     position:relative;width:100%;aspect-ratio:1;container-type:inline-size;
   }
@@ -829,6 +841,20 @@
   </div>
 </div>
 
+<div class="modal-mask" id="inputMask" hidden>
+  <div class="modal" role="dialog" aria-modal="true">
+    <h3 id="inputTitle">輸入</h3>
+    <div class="field full" style="margin-top:0">
+      <label for="inputField" id="inputLabel">請輸入</label>
+      <input id="inputField" autocomplete="off">
+    </div>
+    <div class="m-actions">
+      <button class="m-cancel" id="inputCancel">取消</button>
+      <button class="m-save" id="inputOk">確定</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-mask" id="seatMask" hidden>
   <div class="modal" role="dialog" aria-modal="true">
     <h3 id="seatTitle">填寫座位</h3>
@@ -1194,8 +1220,15 @@
       var filled = t.seats.filter(function(s){ return s.n; }).length;
       html += '<div class="tbl">'+
         '<div class="tbl-head">'+
-          '<span class="n">桌號 '+esc(t.table)+'<small>'+filled+' / '+t.seats.length+' 人</small></span>'+
-          (lockSeat ? '' : '<button class="x" data-rmt="'+ti+'" title="刪除此桌">✕</button>')+
+          ((isAdmin && !lockSeat)
+            ? '<button class="n edit" data-ren="'+ti+'" title="點擊改桌號">桌號 '+esc(t.table)+
+              '<small>'+filled+' / '+t.seats.length+' 人</small> ✎</button>'
+            : '<span class="n">桌號 '+esc(t.table)+'<small>'+filled+' / '+t.seats.length+' 人</small></span>')+
+          ((isAdmin && !lockSeat) ? '<span class="tbl-ops">'+
+            '<button class="mv" data-up="'+ti+'"'+(ti===0?' disabled':'')+' title="上移">▲</button>'+
+            '<button class="mv" data-down="'+ti+'"'+(ti===seats.length-1?' disabled':'')+' title="下移">▼</button>'+
+            '<button class="x" data-rmt="'+ti+'" title="刪除此桌">✕</button>'+
+          '</span>' : '')+
         '</div>'+
         '<div class="round">'+
           '<div class="top"><span class="t1">'+esc(t.table)+'</span><span class="t2">'+t.seats.length+' 席</span></div>';
@@ -1234,6 +1267,15 @@
         openSeat(+el.getAttribute("data-t"), +el.getAttribute("data-s"));
       });
     });
+    Array.prototype.forEach.call(area.querySelectorAll("[data-ren]"), function(el){
+      el.addEventListener("click", function(){ renameTable(+el.getAttribute("data-ren")); });
+    });
+    Array.prototype.forEach.call(area.querySelectorAll("[data-up]"), function(el){
+      el.addEventListener("click", function(){ moveTable(+el.getAttribute("data-up"), -1); });
+    });
+    Array.prototype.forEach.call(area.querySelectorAll("[data-down]"), function(el){
+      el.addEventListener("click", function(){ moveTable(+el.getAttribute("data-down"), 1); });
+    });
     Array.prototype.forEach.call(area.querySelectorAll("[data-rmt]"), function(el){
       el.addEventListener("click", function(){
         if(!requireAdmin("刪除桌子")) return;
@@ -1244,6 +1286,52 @@
         seats.splice(i,1);
         afterSeatChange({ action:"tableDel", bill:billCode, table:t });
       });
+    });
+  }
+
+  var inputRun = null;
+  function askInput(title, label, value, run){
+    inputRun = run;
+    $("inputTitle").textContent = title;
+    $("inputLabel").textContent = label;
+    $("inputField").value = value || "";
+    $("inputMask").hidden = false;
+    $("inputField").focus();
+    $("inputField").select();
+  }
+  function closeInput(){ inputRun = null; $("inputMask").hidden = true; }
+  function submitInput(){
+    var run = inputRun, val = $("inputField").value;
+    closeInput();
+    if(run) run(val);
+  }
+
+  function moveTable(i, dir){
+    if(!requireAdmin("調整順序") || lockSeat) return;
+    var j = i + dir;
+    if(j < 0 || j >= seats.length) return;
+    var tmp = seats[i]; seats[i] = seats[j]; seats[j] = tmp;   // 交換相鄰兩桌
+    renderSeats();
+    afterSeatChange({ action:"tablesReorder", bill:billCode,
+                      order: seats.map(function(s){ return s.table; }) });
+  }
+
+  function renameTable(i){
+    if(!requireAdmin("改桌號") || lockSeat) return;
+    var t = seats[i];
+    if(!t) return;
+    var old = t.table;
+    askInput("改桌號", "新的桌號", old, function(val){
+      var nn = val.trim();
+      if(!nn){ toast("桌號不能空白"); return; }
+      if(nn === old) return;
+      if(seats.some(function(s){ return s.table === nn; })){ toast("桌號 "+nn+" 已存在"); return; }
+      t.table = nn;
+      // 已點餐的紀錄一起改,分帳才對得上
+      records.forEach(function(r){ if(r.table === old) r.table = nn; });
+      renderSeats(); render();
+      afterSeatChange({ action:"tableRename", bill:billCode, table:old, newTable:nn });
+      toast("桌號已改為 "+nn);
     });
   }
 
@@ -2564,6 +2652,12 @@
     switchPage(b.getAttribute("data-page"));
   });
   $("addTableBtn").addEventListener("click", addTable);
+  $("inputOk").addEventListener("click", submitInput);
+  $("inputCancel").addEventListener("click", closeInput);
+  $("inputField").addEventListener("keydown", function(e){
+    if(e.key === "Enter") submitInput();
+    if(e.key === "Escape") closeInput();
+  });
   [$("sTable"), $("sCount")].forEach(function(el){
     el.addEventListener("keydown", function(e){ if(e.key==="Enter") addTable(); });
   });
