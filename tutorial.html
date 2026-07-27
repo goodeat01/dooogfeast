@@ -77,6 +77,27 @@
   .seat.pick{animation:tap 1.2s infinite}
   @keyframes tap{0%,100%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-50%,-50%) scale(1.18)}}
 
+  /* 投票列(選餐廳/日期示意) */
+  .pl{display:flex;align-items:center;gap:10px;padding:9px 4px;border-bottom:1px dashed var(--line)}
+  .pl:last-child{border-bottom:none}
+  .pl.lead{background:var(--soft);border-radius:12px;padding-left:8px;padding-right:8px}
+  .pl .rank{font-family:"Fredoka",sans-serif;font-weight:700;color:var(--muted);width:22px;text-align:center;flex:none}
+  .pl.lead .rank{color:var(--amber-deep)}
+  .pl .body{flex:1;min-width:0;text-align:left}
+  .pl .nm{font-size:15px;font-weight:900}
+  .pl .vote{flex:none;display:flex;flex-direction:column;align-items:center;gap:1px;
+    background:#fff;border:2px solid var(--line);border-radius:12px;padding:5px 12px;color:var(--muted)}
+  .pl .vote.on{background:var(--blue);border-color:var(--blue-deep);color:#FBFAF9}
+  .pl .vote .n{font-family:"Fredoka",sans-serif;font-size:16px;font-weight:700;line-height:1}
+  .pl .vote .t{font-size:10px;font-weight:700}
+  /* 報名按鈕 */
+  .rsvp-btns{display:flex;gap:10px;margin-bottom:12px}
+  .rsvp-btns .rs{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;
+    font-weight:900;font-size:14px;background:#fff;border:2px solid var(--line);color:var(--muted);
+    border-radius:14px;padding:11px 6px}
+  .rsvp-btns .rs .e{font-size:16px}
+  .rsvp-btns .rs.yes.on{background:var(--blue);border-color:var(--blue-deep);color:#FBFAF9}
+  .rsvp-btns .rs.no.on{background:var(--rose);border-color:var(--rose);color:#FBFAF9}
   .pill{background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:9px 12px;
     font-size:14px;font-weight:700;display:flex;justify-content:space-between;align-items:center;margin-top:8px;text-align:left}
   .pill .arw{color:var(--muted);font-size:12px}
@@ -152,7 +173,7 @@
     <div class="cover" id="cover">
       <span class="stamp">人生大事</span>
       <h2>吃喝二字</h2>
-      <p>三分鐘看懂怎麼用 —— 從排座位、點餐到分帳,大家一起連線同步。</p>
+      <p>兩分鐘看懂怎麼用 —— 投票選餐廳、喬日期、報名、點餐到分帳,大家一起連線同步。</p>
       <button class="start" id="startBtn">▶ 開始教學</button>
       <div class="voice-note" id="voiceNote"></div>
     </div>
@@ -175,51 +196,47 @@
   var synth = window.speechSynthesis || null;
 
   var scenes = [
-    { h:"大家一起連線",
-      cap:"最重要的一件事:所有人打開同一個網址,就即時共用同一份帳單。誰新增、誰修改,其他人的手機幾秒內就會同步。",
-      demo:'<span class="badge"><span class="g"></span>已同步</span>'+
+    { h:"選好你是誰",
+      cap:"打開後先在名單選自己的名字,之後投票、報名都認這個名字,一人一份。",
+      demo:'<span class="badge"><span class="g"></span>我是 小美 ▾</span>'+
            '<div class="phones"><div class="phone"><div class="l a"></div><div class="l b"></div><div class="l c"></div></div>'+
            '<div class="sync-arrow">⇄</div>'+
            '<div class="phone"><div class="l b"></div><div class="l a"></div><div class="l c"></div></div></div>' },
 
-    { h:"先排座位圖",
-      cap:"第一步到「座位圖」,輸入桌號跟座位數,系統就會畫出一張圓桌,座位平均排在四周。",
-      demo:'<div class="table-demo"><div class="center">1</div>'+seatsRing(6, -1)+'</div>' },
+    { h:"投票決定吃哪間",
+      cap:"任何人都能提議餐廳,大家一起投票。票最高的排最前面、戴上皇冠,一人一票,改投別間會自動轉過去。",
+      demo:'<div class="pl lead"><span class="rank">👑</span><div class="body"><div class="nm">阿賢熱炒</div></div><div class="vote on"><span class="n">5</span><span class="t">已投</span></div></div>'+
+           '<div class="pl"><span class="rank">2</span><div class="body"><div class="nm">鼎泰豐</div></div><div class="vote"><span class="n">3</span><span class="t">投票</span></div></div>' },
 
-    { h:"點座位填姓名",
-      cap:"點任何一個座位,填上這個人的名字。填過的名字很重要 —— 待會點餐就能直接選,不用再打一次。",
-      demo:'<div class="table-demo"><div class="center">1</div>'+seatsRing(6, 0)+'</div>' },
+    { h:"順便喬哪一天",
+      cap:"日期也能提議、投票,和餐廳分開算,各投一票。哪天人最多一眼就看得出來。",
+      demo:'<div class="pl lead"><span class="rank">👑</span><div class="body"><div class="nm">8/15 (六)</div></div><div class="vote on"><span class="n">6</span><span class="t">已投</span></div></div>'+
+           '<div class="pl"><span class="rank">2</span><div class="body"><div class="nm">8/22 (六)</div></div><div class="vote"><span class="n">2</span><span class="t">投票</span></div></div>' },
 
-    { h:"點餐:選桌、選人",
-      cap:"到「點餐」頁,桌號跟姓名都是下拉選單,直接從座位圖帶出來 —— 選桌號,再選那一桌的人,兩下就好。",
-      demo:'<div class="pill"><span>桌號</span><span class="arw">桌號 1 ▾</span></div>'+
-           '<div class="pill hl"><span>姓名</span><span class="arw">小美 ▾</span></div>' },
+    { h:"回報要不要參加",
+      cap:"按一下我要參加或不參加,大家就看得到誰會來、還有誰沒回。名單外帶來的朋友也能加進去。",
+      demo:'<div class="rsvp-btns"><div class="rs yes on"><span class="e">🙋</span>我要參加</div><div class="rs no"><span class="e">🙅</span>不參加</div></div>'+
+           '<div class="rs-sum"><div><div class="n">18</div><div class="t">參加</div></div><div class="no"><div class="n">3</div><div class="t">不參加</div></div><div class="un"><div class="n">11</div><div class="t">未回覆</div></div></div>' },
 
-    { h:"餐點從菜單選",
-      cap:"餐點內容也能從菜單直接選,選到就自動帶出金額,不用手打。菜單沒有的臨時菜色,照樣可以自己輸入。",
-      demo:'<div class="pill"><span>餐點內容</span><span class="arw">滷肉飯 ▾</span></div>'+
-           '<div class="pill hl"><span>金額</span><span class="amt">$60</span></div>' },
+    { h:"排座位、填名字",
+      cap:"到座位圖新增桌子,點座位填上名字。填過的名字,待會點餐就能直接選。",
+      demo:'<div class="table-demo"><div class="center">1</div>'+seatsRing(6, 2)+'</div>' },
+
+    { h:"點餐從菜單選",
+      cap:"點餐頁選桌號、選人,都從座位圖帶出來;餐點從菜單選,金額自動帶出,不用手打。",
+      demo:'<div class="pill"><span>姓名</span><span class="arw">小美 ▾</span></div>'+
+           '<div class="pill hl"><span>滷肉飯</span><span class="amt">$60</span></div>' },
 
     { h:"服務費與分帳",
-      cap:"勾一下服務費,各桌小計會自動含進去。切換依桌號或依姓名,一眼看出每桌、每個人該付多少,金額加起來剛好等於總計。",
-      demo:'<label class="pill hl" style="cursor:default"><span>☑ 加收服務費 10%</span><span class="amt">+$210</span></label>'+
-           '<div class="sub"><span>桌號 1 小計含服務費</span><b>$1,320</b></div>'+
-           '<div class="sub"><span>桌號 2 小計含服務費</span><b>$990</b></div>' },
+      cap:"勾服務費,各桌小計自動含進去,依桌或依人一眼看出誰付多少,加起來剛好等於總計。",
+      demo:'<label class="pill hl" style="cursor:default"><span>☑ 服務費 10%</span><span class="amt">+$210</span></label>'+
+           '<div class="sub"><span>桌號 1 含服務費</span><b>$1,320</b></div>'+
+           '<div class="sub"><span>桌號 2 含服務費</span><b>$990</b></div>' },
 
-    { h:"菜單頁",
-      cap:"菜單頁可以貼菜色價格、貼店家連結,也能直接上傳菜單照片,大家即時看到同一份菜單。",
-      demo:'<div class="big-emoji">📋</div>'+
-           '<div class="pill"><span>滷肉飯</span><span class="amt">$60</span></div>'+
-           '<div class="pill"><span>🔗 開啟菜單</span><span class="arw">foodpanda…</span></div>' },
-
-    { h:"鎖定與密碼",
-      cap:"排好、點完之後,可以把座位、點餐、菜單分別鎖起來,避免有人不小心改到。要解鎖或清空,得輸入密碼才行。",
+    { h:"管理者鎖定定案",
+      cap:"喬好之後,管理者登入就能鎖定投票、座位或菜單,避免有人改到,還能看到誰投了誰。就這樣,開始用吧!",
       demo:'<div class="lock-demo">🔒</div>'+
-           '<div class="keys"><span>•</span><span>•</span><span>•</span><span>•</span></div>' },
-
-    { h:"開始用吧!",
-      cap:"就這樣!流程是:排座位、填名字、點餐、看分帳。大家連著同一個網址,邊吃邊記,散場前帳就分好了。",
-      demo:'<div class="big-emoji">🍽️</div>' , end:true }
+           '<div class="keys"><span>•</span><span>•</span><span>•</span><span>•</span></div>', end:true }
   ];
 
   function seatsRing(n, filledIdx){
@@ -282,14 +299,15 @@
     }
   }
 
-  function estimate(text){ return Math.max(3800, text.length * 175 + 1100); }
+  /* 有語音就念完進下一步;無語音則依字數估時間。字數多的步驟自然停久一點。 */
+  function estimate(text){ return Math.max(4500, text.length * 190 + 1200); }
 
   function narrate(text, onDone){
     clearTimeout(advTimer);
     var done = false;
-    function finish(){ if(!done){ done = true; onDone(); } }
+    function finish(){ if(done) return; done = true; onDone(); }
     if(muted || !synth || noVoice){
-      advTimer = setTimeout(finish, estimate(text));
+      advTimer = setTimeout(finish, estimate(text));   // 無語音:看字幕的時間
       return;
     }
     try{ synth.cancel(); }catch(e){}
@@ -299,7 +317,7 @@
     u.onend = finish;
     u.onerror = finish;
     try{ synth.speak(u); }catch(e){ advTimer = setTimeout(finish, estimate(text)); return; }
-    advTimer = setTimeout(finish, estimate(text) * 1.9);   // 保險:onend 沒觸發也會前進
+    advTimer = setTimeout(finish, estimate(text) * 1.8);   // 保險:onend 沒觸發也會前進
   }
 
   function render(){
