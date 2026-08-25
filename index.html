@@ -1993,9 +1993,12 @@
 
   /* ── 選餐廳 ───────────────────────────
      依票數由高到低排序,同票的先提議的在前。一人一票,再按一次收回。 */
+  var voterSelSig = "";
   function fillVoterSel(){
     var sel = $("voterSel");
-    if(sel.options.length !== ROSTER.length + 1){
+    var sig = ROSTER.join("\u0001");                 // 名字內容變了(含改名)就重建,不只看人數
+    if(sig !== voterSelSig){
+      voterSelSig = sig;
       sel.innerHTML = '<option value="">選擇你的名字</option>' +
         ROSTER.map(function(n){ return '<option value="'+esc(n)+'">'+esc(n)+'</option>'; }).join("");
     }
