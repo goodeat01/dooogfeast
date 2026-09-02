@@ -200,19 +200,18 @@
   .svc-toggle input[type=checkbox]:disabled{cursor:not-allowed}
 
   /* 選餐廳 */
-  /* 提議一多頁面會很長 —— 限高並可獨立捲動 */
-  #placeList,#dateList{
+  /* 餐廳提議:全部直接展開,不捲動 */
+  /* 日期提議:限高可捲動(日期通常不多,保留捲動避免太長) */
+  #dateList{
     max-height:320px;overflow-y:auto;overscroll-behavior:contain;
     scrollbar-width:thin;scrollbar-color:var(--press) transparent;
   }
-  #placeList::-webkit-scrollbar,#dateList::-webkit-scrollbar{width:9px}
-  #placeList::-webkit-scrollbar-track,#dateList::-webkit-scrollbar-track{background:transparent}
-  #placeList::-webkit-scrollbar-thumb,#dateList::-webkit-scrollbar-thumb{
+  #dateList::-webkit-scrollbar{width:9px}
+  #dateList::-webkit-scrollbar-track{background:transparent}
+  #dateList::-webkit-scrollbar-thumb{
     background:var(--press);border-radius:9px;border:2.5px solid var(--paper);
   }
-  #placeList::-webkit-scrollbar-thumb:hover,#dateList::-webkit-scrollbar-thumb:hover{
-    background:var(--muted);
-  }
+  #dateList::-webkit-scrollbar-thumb:hover{background:var(--muted);}
   .sec-title{
     font-size:13px;font-weight:900;color:var(--green);letter-spacing:.08em;
     padding:2px 4px 8px;
