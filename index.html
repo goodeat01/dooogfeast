@@ -218,6 +218,23 @@
     padding:2px 4px 8px;
   }
   .sec-title:not(:first-child){margin-top:16px}
+  /* 截止時間 */
+  .dl-row{margin-top:12px;display:flex;flex-direction:column;gap:7px}
+  .dl-item{display:flex;align-items:center;gap:8px;font-size:12.5px}
+  .dl-item .k{font-weight:900;color:var(--muted);flex:none;width:64px}
+  .dl-item .v{color:var(--ink);font-weight:700}
+  .dl-item .v.past{color:var(--danger)}
+  .dl-item .v.none{color:var(--muted);font-weight:500}
+  .dl-item input[type=datetime-local]{
+    flex:1;min-width:0;font-family:inherit;font-size:13px;color:var(--ink);
+    background:#fff;border:1.5px solid var(--line);border-radius:10px;padding:6px 8px;
+  }
+  .dl-item input:focus{outline:none;border-color:var(--green)}
+  .dl-item .clr{
+    flex:none;border:none;background:transparent;color:var(--muted);cursor:pointer;
+    font-size:12px;padding:4px 6px;border-radius:7px;
+  }
+  .dl-item .clr:hover{background:#F6E7E9;color:var(--danger)}
 
   /* 名單編輯 */
   .roster-edit{max-height:44vh;overflow-y:auto;overscroll-behavior:contain;margin:0 -4px}
@@ -744,6 +761,7 @@
         </div>
         <button class="add-btn" id="addPlaceBtn">＋ 提議這間</button>
         <div class="conn-hint">提議後大家就能投票,票最高的會排在最前面。一人一票,再按一次可以收回。</div>
+        <div class="dl-row" id="dlrow_place"></div>
       </div>
     </div>
 
@@ -768,6 +786,7 @@
         </div>
         <button class="add-btn" id="addDateBtn">＋ 提議這天</button>
         <div class="conn-hint">日期跟餐廳分開投票,兩邊各投一票。</div>
+        <div class="dl-row" id="dlrow_date"></div>
       </div>
     </div>
 
@@ -963,6 +982,7 @@
       lockName = false, lockPlace = false, lockPropose = false,
       lockDPropose = false, lockDVote = false, lockRsvp = false;
   var places = [];
+  var DL = { propose:"", place:"", dpropose:"", dvote:"" };   // 各區截止時間(datetime-local 字串)
   /* 投票名單 */
   var ROSTER_DEFAULT = ["西西","池昌旭(TZU)","YUN","NN","奶茶","JOE","RJ","嘎蓉","JC","小玉",
     "MARS","小综","辣妹(米濃)","小依","蕉蕉","晴","希希","舒容","EVIE","欣",
@@ -1490,7 +1510,15 @@
   var LOCK_NAME = { order:"點餐", seat:"桌號人數", name:"座位姓名", info:"地點時間",
                     menu:"菜單", place:"餐廳投票", propose:"餐廳提議",
                     dpropose:"日期提議", dvote:"日期投票", rsvp:"報名" };
+  /* 截止時間到了,該區視同鎖定 */
+  function pastDL(which){
+    var v = DL[which];
+    if(!v) return false;
+    var t = new Date(v).getTime();
+    return !isNaN(t) && Date.now() >= t;
+  }
   function isLocked(which){
+    if(pastDL(which)) return true;
     return which === "seat" ? lockSeat
          : which === "place" ? lockPlace
          : which === "propose" ? lockPropose
@@ -2026,6 +2054,54 @@
 
   function isGuest(name){ return ROSTER.indexOf(name) === -1; }
 
+  /* ── 投票/提議截止時間 ──────────────────
+     顯示成「8/10 (一) 20:00」;過期以紅字標示,該區自動視為鎖定。 */
+  function fmtDL(v){
+    var d = new Date(v);
+    if(isNaN(d.getTime())) return v;
+    return (d.getMonth()+1)+"/"+d.getDate()+" ("+WD[d.getDay()]+") "+
+           ("0"+d.getHours()).slice(-2)+":"+("0"+d.getMinutes()).slice(-2);
+  }
+  function dlItem(k, which){
+    var v = DL[which];
+    var past = pastDL(which);
+    if(isAdmin){
+      return '<div class="dl-item"><span class="k">'+k+'</span>'+
+        '<input type="datetime-local" data-dl="'+which+'" value="'+esc(v)+'">'+
+        (v ? '<button class="clr" data-dlc="'+which+'">清除</button>' : '')+'</div>';
+    }
+    // 一般使用者:唯讀顯示
+    return '<div class="dl-item"><span class="k">'+k+'</span>'+
+      (v ? '<span class="v'+(past?' past':'')+'">'+fmtDL(v)+(past?' · 已截止':'')+'</span>'
+         : '<span class="v none">未設定</span>')+'</div>';
+  }
+  function renderDL(){
+    // 管理者才需要看到未設定的欄位;一般使用者只在有設定時顯示,不佔版面
+    function block(which1, k1, which2, k2){
+      if(!isAdmin && !DL[which1] && !DL[which2]) return "";
+      return dlItem(k1, which1) + dlItem(k2, which2);
+    }
+    $("dlrow_place").innerHTML = block("propose", "提議截止", "place", "投票截止");
+    $("dlrow_date").innerHTML  = block("dpropose", "提議截止", "dvote", "投票截止");
+
+    Array.prototype.forEach.call(document.querySelectorAll("[data-dl]"), function(el){
+      el.addEventListener("change", function(){ setDeadline(el.getAttribute("data-dl"), el.value); });
+    });
+    Array.prototype.forEach.call(document.querySelectorAll("[data-dlc]"), function(el){
+      el.addEventListener("click", function(){ setDeadline(el.getAttribute("data-dlc"), ""); });
+    });
+  }
+  function setDeadline(which, value){
+    if(!requireAdmin("設定截止時間")) return;
+    DL[which] = value || "";
+    renderPlaces(); applyLockUI();
+    if(online){
+      mutate({ action:"deadline", bill:billCode, which:which, value:value || "" })
+        .catch(function(){ toast("截止時間同步失敗"); });
+    }
+    toast(value ? "已設定截止時間" : "已清除截止時間");
+  }
+
   /* ── 編輯名單(管理者)────────────────────
      editRoster 是編輯中的暫存副本;儲存時比對原名單,改名的部分連動投票/報名。 */
   var editRoster = null;
@@ -2209,6 +2285,7 @@
   function renderPlaces(){
     fillVoterSel();
     renderRsvp();
+    renderDL();
     renderGroup("place");
     renderGroup("date");
   }
@@ -2578,6 +2655,10 @@
     lockDPropose = !!data.lockDPropose;
     lockDVote = !!data.lockDVote;
     lockRsvp = !!data.lockRsvp;
+    DL.propose  = String(data.dlPropose  || "");
+    DL.place    = String(data.dlPlace    || "");
+    DL.dpropose = String(data.dlDPropose || "");
+    DL.dvote    = String(data.dlDVote    || "");
     if(typeof data.roster === "string"){
       var rn = data.roster.split(",").map(function(x){ return x.trim(); }).filter(function(x){ return x; });
       ROSTER = rn.length ? rn : ROSTER_DEFAULT.slice();
@@ -2662,6 +2743,12 @@
     updateConnUI();
     poll();
     pollTimer = setInterval(poll, POLL_MS);
+    // 截止是時間到、資料不變,輪詢不會觸發重繪 → 另外每 20 秒檢查一次,讓過期自動生效
+    setInterval(function(){
+      if(page === "place" && (DL.propose || DL.place || DL.dpropose || DL.dvote)){
+        renderPlaces(); applyLockUI();
+      }
+    }, 20000);
     verifyAdmin();
   }
 
