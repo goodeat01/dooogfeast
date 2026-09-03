@@ -1043,6 +1043,9 @@
   var pendingWrites = 0;
   var polling = false;
   var lastSig = "";
+  var sigLock="", sigPlace="", sigInfo="", sigMenu="", sigOrder="", sigSeat="";
+  var dirtyPlace=false, dirtyOrder=false, dirtyMenu=false;   // 不在該頁時先記著,切過去再畫
+  var lastMenu="", lastMenuUrl="";
 
   function backendReady(){
     return !!(API_URL && API_URL.indexOf("http") === 0);
@@ -1505,7 +1508,9 @@
       b.classList.toggle("on", b.getAttribute("data-page") === p);
     });
     if(p === "seat") renderSeats();
-    if(p === "place") renderPlaces();
+    if(p === "place"){ renderPlaces(); dirtyPlace = false; }
+    if(p === "order" && dirtyOrder){ render(); dirtyOrder = false; }
+    if(p === "menu" && dirtyMenu){ fillMenu(lastMenu, lastMenuUrl); dirtyMenu = false; }
   }
 
   /* ── 鎖定 ─────────────────────────────
@@ -2671,7 +2676,7 @@
         return { name:String(r.name||""), status:String(r.status||"") };
       });
     }
-    applyLockUI();
+    // ── 先更新狀態(輕量賦值,不碰 DOM)──
     if(Array.isArray(data.places)){
       votedTotal = (data.votedTotal && typeof data.votedTotal === "object") ? data.votedTotal : null;
       places = data.places.map(function(p){
@@ -2681,23 +2686,41 @@
                  kind: (p.kind === "date") ? "date" : "place",
                  count: (typeof p.count === "number") ? p.count : vs.length };
       });
-      renderPlaces();
     }
-    fillInfo(data.place, data.time);
-    fillMenu(data.menu, data.menuUrl);
-
     records = (data.orders || []).map(function(x){
       return { id:String(x.id), table:x.table, name:x.name, item:x.item, amt:Number(x.amt) };
     });
     svc = !!data.svc;
-    // 座位以「桌號 + 席次」定位,不受陣列順序影響,故可安全即時更新(含他人的鎖定狀態)
     var incoming = data.seats;
     if(typeof incoming === "string"){
       try{ incoming = JSON.parse(incoming); }catch(e){ incoming = []; }
     }
     seats = normSeats(incoming);
-    render();
-    if(page === "seat") renderSeats();
+
+    // ── 分區重畫:只畫真正變動的區塊,避免每次同步整頁重繪 ──
+    var s;
+    s = JSON.stringify([data.lockOrder,data.lockSeat,data.lockInfo,data.lockMenu,data.lockName,
+                        data.lockPlace,data.lockPropose,data.lockDPropose,data.lockDVote,data.lockRsvp,
+                        data.dlPropose,data.dlPlace,data.dlDPropose,data.dlDVote,data.roster]);
+    if(s !== sigLock){ sigLock = s; applyLockUI(); }
+
+    s = JSON.stringify([data.places,data.votedTotal,data.rsvp,data.roster,
+                        data.lockPlace,data.lockPropose,data.lockDPropose,data.lockDVote,data.lockRsvp,
+                        data.dlPropose,data.dlPlace,data.dlDPropose,data.dlDVote]);
+    if(s !== sigPlace){ sigPlace = s; if(page === "place") renderPlaces(); else dirtyPlace = true; }
+
+    s = JSON.stringify([data.place,data.time,data.lockInfo]);
+    if(s !== sigInfo){ sigInfo = s; fillInfo(data.place, data.time); }   // 只更新輸入框值,很輕
+
+    s = JSON.stringify([data.menu,data.menuUrl,data.lockMenu]);
+    if(s !== sigMenu){ sigMenu = s; lastMenu = data.menu; lastMenuUrl = data.menuUrl;
+      if(page === "menu") fillMenu(data.menu, data.menuUrl); else dirtyMenu = true; }
+
+    s = JSON.stringify([data.orders,data.svc,data.lockOrder]);
+    if(s !== sigOrder){ sigOrder = s; if(page === "order") render(); else dirtyOrder = true; }
+
+    s = JSON.stringify([data.seats,data.lockSeat,data.lockName]);
+    if(s !== sigSeat){ sigSeat = s; if(page === "seat") renderSeats(); }
   }
 
   /* 先問 rev(極輕量);沒變就不抓資料。
