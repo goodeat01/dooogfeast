@@ -1034,6 +1034,10 @@
   </div>
 </div>
 
+<div style="max-width:640px;margin:16px auto 0;text-align:center;font-size:11px;color:#9AA3B2;letter-spacing:.05em">
+  日期已中文化 · build 2026-10-12
+</div>
+
 <script>
 (function(){
   "use strict";
@@ -2112,13 +2116,23 @@
     sel.classList.toggle("empty", !sel.value);
   }
 
-  /* 日期顯示成「8/15 (六)」 */
+  /* 日期顯示成「8/15 (六)」;容錯:值可能是 ISO,也可能是舊資料存成的完整 Date 字串 */
   var WD = ["日","一","二","三","四","五","六"];
   function fmtDate(iso){
-    var m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})$/);
-    if(!m) return iso;
-    var d = new Date(+m[1], +m[2]-1, +m[3]);
-    return (+m[2]) + "/" + (+m[3]) + " (" + WD[d.getDay()] + ")";
+    var s = String(iso), y, mo, da;
+    var m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);           // ISO(含帶時間者)
+    if(m){ y = +m[1]; mo = +m[2]-1; da = +m[3]; }
+    else{
+      var MO = {Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
+      var t = s.match(/\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{1,2})\s+(\d{4})/); // "Mon Oct 12 2026 ..."
+      if(t){ y = +t[3]; mo = MO[t[1]]; da = +t[2]; }
+      else{
+        var d = new Date(s);
+        if(isNaN(d.getTime())) return s;                  // 真的解析不了才原樣顯示
+        y = d.getFullYear(); mo = d.getMonth(); da = d.getDate();
+      }
+    }
+    return (mo+1) + "/" + da + " (" + WD[new Date(y, mo, da).getDay()] + ")";
   }
 
   /* ── 中文日期選擇器(取代原生 type=date,避免瀏覽器顯示英文) ── */
