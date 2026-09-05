@@ -233,6 +233,38 @@
     background:#fff;border:1.5px solid var(--line);border-radius:9px;padding:5px 7px;max-width:170px;
   }
   .dl-item input:focus{outline:none;border-color:var(--green)}
+  .dl-trig{
+    font-family:inherit;font-size:12.5px;font-weight:700;color:var(--ink);
+    background:#fff;border:1.5px solid var(--line);border-radius:9px;padding:5px 9px;cursor:pointer;
+    transition:border-color .15s;
+  }
+  .dl-trig:hover{border-color:var(--green)}
+  .dl-trig.empty{color:var(--muted);font-weight:500}
+  .dt-pop{
+    position:fixed;z-index:60;width:260px;
+    background:var(--paper);border:1.5px solid var(--line);border-radius:16px;
+    box-shadow:0 12px 34px rgba(80,90,105,.20);padding:12px;
+  }
+  .dt-time{
+    display:flex;align-items:center;gap:8px;margin-top:10px;
+    border-top:1px dashed var(--line);padding-top:10px;
+  }
+  .dt-time .lbl{font-size:12px;font-weight:700;color:var(--muted)}
+  .dt-time select{
+    font-family:"Fredoka","Noto Sans TC",sans-serif;font-size:14px;font-weight:600;color:var(--ink);
+    background:#fff;border:1.5px solid var(--line);border-radius:10px;padding:6px 8px;cursor:pointer;
+  }
+  .dt-time select:focus{outline:none;border-color:var(--green)}
+  .dt-time .colon{font-weight:900;color:var(--muted)}
+  .dt-actions{display:flex;gap:8px;margin-top:12px}
+  .dt-actions button{
+    flex:1;font-family:inherit;font-size:14px;font-weight:900;cursor:pointer;
+    border-radius:12px;padding:9px;border:none;transition:.15s;
+  }
+  .dt-clear{background:#fff;border:1.5px solid var(--line);color:var(--muted)}
+  .dt-clear:hover{border-color:var(--danger);color:var(--danger)}
+  .dt-ok{background:var(--green);color:#FBFAF9;box-shadow:0 2px 0 #3F6288}
+  .dt-ok:hover{background:#3F6288}
   .dl-item .clr{
     flex:none;border:none;background:transparent;color:var(--muted);cursor:pointer;
     font-size:11px;padding:3px 5px;border-radius:6px;
@@ -2130,6 +2162,96 @@
   }
   function dpClose(){ $("dDatePop").hidden = true; $("dDateTrigger").classList.remove("open"); }
 
+  /* ── 中文「日期＋時間」選擇器(取代原生 datetime-local 截止時間) ── */
+  var dtWhich = "", dtView = new Date(), dtSel = "";
+  function dtEl(){ return document.getElementById("dtPop"); }
+  function dtEnsure(){
+    if(dtEl()) return dtEl();
+    var p = document.createElement("div");
+    p.id = "dtPop"; p.className = "dt-pop"; p.hidden = true;
+    var i, hOpts = "", mOpts = "";
+    for(i=0;i<24;i++){ hOpts += '<option value="'+i+'">'+("0"+i).slice(-2)+'</option>'; }
+    for(i=0;i<60;i+=5){ mOpts += '<option value="'+i+'">'+("0"+i).slice(-2)+'</option>'; }
+    p.innerHTML =
+      '<div class="dp-head">'+
+        '<button type="button" class="dp-nav" data-dtnav="prev">‹</button>'+
+        '<span class="dp-title" id="dtTitle"></span>'+
+        '<button type="button" class="dp-nav" data-dtnav="next">›</button>'+
+      '</div>'+
+      '<div class="dp-grid dp-wd" id="dtWd"></div>'+
+      '<div class="dp-grid" id="dtDays"></div>'+
+      '<div class="dt-time"><span class="lbl">時間</span>'+
+        '<select id="dtH">'+hOpts+'</select><span class="colon">:</span>'+
+        '<select id="dtM">'+mOpts+'</select></div>'+
+      '<div class="dt-actions">'+
+        '<button type="button" class="dt-clear" id="dtClear">清除</button>'+
+        '<button type="button" class="dt-ok" id="dtOk">確定</button>'+
+      '</div>';
+    document.body.appendChild(p);
+    var wd = "";
+    for(i=0;i<7;i++){ wd += '<span class="dp-w">'+WD[i]+'</span>'; }
+    document.getElementById("dtWd").innerHTML = wd;
+    p.addEventListener("click", function(e){ e.stopPropagation(); });
+    p.querySelector('[data-dtnav="prev"]').addEventListener("click", function(){ dtView.setMonth(dtView.getMonth()-1); dtDaysBuild(); });
+    p.querySelector('[data-dtnav="next"]').addEventListener("click", function(){ dtView.setMonth(dtView.getMonth()+1); dtDaysBuild(); });
+    document.getElementById("dtDays").addEventListener("click", function(e){
+      var b = e.target.closest("[data-dtday]"); if(!b) return;
+      dtSel = b.getAttribute("data-dtday"); dtDaysBuild();
+    });
+    document.getElementById("dtOk").addEventListener("click", dtConfirm);
+    document.getElementById("dtClear").addEventListener("click", function(){ setDeadline(dtWhich, ""); dtClose(); });
+    return p;
+  }
+  function dtDaysBuild(){
+    var y = dtView.getFullYear(), m = dtView.getMonth();
+    var first = new Date(y, m, 1).getDay();
+    var days = new Date(y, m+1, 0).getDate();
+    document.getElementById("dtTitle").textContent = y+" 年 "+(m+1)+" 月";
+    var h = "";
+    for(var b=0;b<first;b++){ h += '<span class="dp-empty"></span>'; }
+    for(var d=1; d<=days; d++){
+      var iso = dpISO(y,m,d), cls = "dp-day";
+      if(iso === dtSel) cls += " sel";
+      h += '<button type="button" class="'+cls+'" data-dtday="'+iso+'">'+d+'</button>';
+    }
+    document.getElementById("dtDays").innerHTML = h;
+  }
+  function dtOpen(which, anchor){
+    if(!requireAdmin("設定截止時間")) return;
+    dtEnsure();
+    dtWhich = which;
+    var v = DL[which] || "";
+    var mm = v.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+    if(mm){
+      dtSel = mm[1]+"-"+mm[2]+"-"+mm[3];
+      dtView = new Date(+mm[1], +mm[2]-1, 1);
+      document.getElementById("dtH").value = String(+mm[4]);
+      var mnt = +mm[5]; document.getElementById("dtM").value = String(mnt - (mnt%5));
+    }else{
+      dtSel = "";
+      dtView = new Date(); dtView.setDate(1);
+      var now = new Date();
+      document.getElementById("dtH").value = String(now.getHours());
+      document.getElementById("dtM").value = "0";
+    }
+    dtDaysBuild();
+    var p = dtEl(); p.hidden = false;
+    var r = anchor.getBoundingClientRect();
+    var w = p.offsetWidth || 260;
+    var left = Math.min(r.left, window.innerWidth - w - 10); if(left < 10) left = 10;
+    var top = r.bottom + 6;
+    if(top + p.offsetHeight > window.innerHeight - 10){ top = Math.max(10, r.top - p.offsetHeight - 6); }
+    p.style.left = left+"px"; p.style.top = top+"px";
+  }
+  function dtClose(){ var p = dtEl(); if(p) p.hidden = true; }
+  function dtConfirm(){
+    if(!dtSel){ toast("請先選日期"); return; }
+    var H = ("0"+ (+document.getElementById("dtH").value)).slice(-2);
+    var M = ("0"+ (+document.getElementById("dtM").value)).slice(-2);
+    setDeadline(dtWhich, dtSel + "T" + H + ":" + M);
+    dtClose();
+  }
+
   function kindOf(p){ return p.kind === "date" ? "date" : "place"; }
 
   /* ── 報名 ─────────────────────────── */
@@ -2154,7 +2276,8 @@
     var past = pastDL(which);
     if(isAdmin){
       return '<div class="dl-item"><span class="k">'+k+'</span>'+
-        '<input type="datetime-local" data-dl="'+which+'" value="'+esc(v)+'">'+
+        '<button type="button" class="dl-trig'+(v?'':' empty')+'" data-dlt="'+which+'">'+
+          (v ? esc(fmtDL(v)) : '設定時間')+'</button>'+
         (v ? '<button class="clr" data-dlc="'+which+'">清除</button>' : '')+'</div>';
     }
     // 一般使用者:唯讀顯示
@@ -2171,8 +2294,8 @@
     $("dlrow_place").innerHTML = block("propose", "提議截止", "place", "投票截止");
     $("dlrow_date").innerHTML  = block("dpropose", "提議截止", "dvote", "投票截止");
 
-    Array.prototype.forEach.call(document.querySelectorAll("[data-dl]"), function(el){
-      el.addEventListener("change", function(){ setDeadline(el.getAttribute("data-dl"), el.value); });
+    Array.prototype.forEach.call(document.querySelectorAll("[data-dlt]"), function(el){
+      el.addEventListener("click", function(e){ e.stopPropagation(); dtOpen(el.getAttribute("data-dlt"), el); });
     });
     Array.prototype.forEach.call(document.querySelectorAll("[data-dlc]"), function(el){
       el.addEventListener("click", function(){ setDeadline(el.getAttribute("data-dlc"), ""); });
@@ -2937,7 +3060,7 @@
     var day = e.target.closest("[data-dpday]");
     if(day){ $("dDate").value = day.getAttribute("data-dpday"); dpSyncDisplay(); dpClose(); }
   });
-  document.addEventListener("click", function(){ if(!$("dDatePop").hidden) dpClose(); });
+  document.addEventListener("click", function(){ if(!$("dDatePop").hidden) dpClose(); dtClose(); });
   dpSyncDisplay();
   [$("pName"), $("pNote")].forEach(function(el){
     el.addEventListener("keydown", function(e){ if(e.key === "Enter") addPlace(); });
