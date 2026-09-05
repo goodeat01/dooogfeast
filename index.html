@@ -317,13 +317,43 @@
   .guest-add button:hover{border-color:var(--green)}
   .guest-add button:disabled{opacity:.45;cursor:not-allowed}
   #dateList{padding:6px 0}
-  #dDate{
+  #dDate{display:none}
+  .dp-wrap{position:relative}
+  .dp-trigger{
     font-family:"Fredoka","Noto Sans TC",sans-serif;font-size:16px;font-weight:600;
     color:var(--ink);background:#fff;border:1.5px solid var(--line);border-radius:14px;
-    padding:10px 12px;width:100%;
+    padding:10px 12px;width:100%;display:flex;align-items:center;justify-content:space-between;
+    gap:8px;cursor:pointer;text-align:left;transition:border-color .15s,box-shadow .15s;
   }
-  #dDate:focus{outline:none;border-color:var(--green);box-shadow:0 0 0 3px rgba(78,115,152,.20)}
-  #dDate:disabled{background:#F0EEEB;color:var(--muted);cursor:not-allowed}
+  .dp-trigger:hover{border-color:var(--green)}
+  .dp-trigger.open{border-color:var(--green);box-shadow:0 0 0 3px rgba(78,115,152,.20)}
+  .dp-trigger:disabled{background:#F0EEEB;color:var(--muted);cursor:not-allowed}
+  .dp-trigger .dp-placeholder{color:var(--muted);font-weight:500}
+  .dp-trigger .dp-ic{font-size:15px;flex:none;opacity:.8}
+  .dp-pop{
+    margin-top:8px;background:var(--paper);border:1.5px solid var(--line);
+    border-radius:16px;box-shadow:0 6px 18px rgba(80,90,105,.10);padding:12px;
+  }
+  .dp-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .dp-title{font-weight:900;font-size:15px;color:var(--ink);letter-spacing:.04em}
+  .dp-nav{
+    font-family:inherit;font-size:18px;font-weight:900;line-height:1;color:var(--green);
+    background:var(--green-soft);border:none;border-radius:10px;width:32px;height:32px;
+    cursor:pointer;transition:.15s;
+  }
+  .dp-nav:hover{background:var(--green);color:#fff}
+  .dp-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+  .dp-wd{margin-bottom:4px}
+  .dp-w{text-align:center;font-size:12px;font-weight:700;color:var(--muted);padding:4px 0}
+  .dp-day{
+    font-family:"Fredoka","Noto Sans TC",sans-serif;font-size:14px;font-weight:600;
+    color:var(--ink);background:transparent;border:none;border-radius:10px;
+    height:36px;cursor:pointer;transition:.12s;
+  }
+  .dp-day:hover{background:var(--green-soft)}
+  .dp-day.today{color:var(--amber-deep);box-shadow:inset 0 0 0 1.5px var(--amber)}
+  .dp-day.sel{background:var(--green);color:#fff}
+  .dp-empty{height:36px}
   .voter-card{display:flex;align-items:center;gap:9px;padding:10px 14px;margin-bottom:14px}
   .voter-card .ic{font-size:16px;flex:none}
   .voter-card select{
@@ -785,8 +815,15 @@
     <div class="card">
       <div class="entry">
         <div class="field full" style="margin-top:0">
-          <label for="dDate">日期 <em>*</em></label>
-          <input id="dDate" type="date">
+          <label>日期 <em>*</em></label>
+          <div class="dp-wrap">
+            <input id="dDate" type="hidden">
+            <button type="button" id="dDateTrigger" class="dp-trigger">
+              <span id="dDateText" class="dp-placeholder">選擇日期</span>
+              <span class="dp-ic">📅</span>
+            </button>
+            <div id="dDatePop" class="dp-pop" hidden></div>
+          </div>
         </div>
         <button class="add-btn" id="addDateBtn">＋ 提議這天</button>
         <div class="conn-hint">日期跟餐廳分開投票,兩邊各投一票。</div>
@@ -1704,7 +1741,8 @@
     qb.classList.toggle("on", lockPropose);
 
     ["pName","pNote","addPlaceBtn"].forEach(function(id){ $(id).disabled = lockPropose; });
-    ["dDate","addDateBtn"].forEach(function(id){ $(id).disabled = lockDPropose; });
+    ["addDateBtn","dDateTrigger"].forEach(function(id){ $(id).disabled = lockDPropose; });
+    if(lockDPropose) dpClose();
 
     var db = $("lockDProposeBtn");
     db.textContent = lockDPropose ? "🔒 提議" : "🔓 提議";
@@ -2051,6 +2089,47 @@
     return (+m[2]) + "/" + (+m[3]) + " (" + WD[d.getDay()] + ")";
   }
 
+  /* ── 中文日期選擇器(取代原生 type=date,避免瀏覽器顯示英文) ── */
+  var dpView = new Date(); dpView.setDate(1);
+  function dpPad(n){ return (n<10?"0":"")+n; }
+  function dpISO(y,m,d){ return y+"-"+dpPad(m+1)+"-"+dpPad(d); }
+  function dpSyncDisplay(){
+    var iso = $("dDate").value, txt = $("dDateText");
+    if(iso){ txt.textContent = fmtDate(iso); txt.classList.remove("dp-placeholder"); }
+    else{ txt.textContent = "選擇日期"; txt.classList.add("dp-placeholder"); }
+  }
+  function dpBuild(){
+    var y = dpView.getFullYear(), m = dpView.getMonth();
+    var first = new Date(y, m, 1).getDay();
+    var days = new Date(y, m+1, 0).getDate();
+    var sel = $("dDate").value;
+    var t = new Date(), todayISO = dpISO(t.getFullYear(), t.getMonth(), t.getDate());
+    var h = '<div class="dp-head">'+
+      '<button type="button" class="dp-nav" data-dp="prev">‹</button>'+
+      '<span class="dp-title">'+y+' 年 '+(m+1)+' 月</span>'+
+      '<button type="button" class="dp-nav" data-dp="next">›</button>'+
+    '</div><div class="dp-grid dp-wd">';
+    for(var w=0;w<7;w++){ h += '<span class="dp-w">'+WD[w]+'</span>'; }
+    h += '</div><div class="dp-grid">';
+    for(var b=0;b<first;b++){ h += '<span class="dp-empty"></span>'; }
+    for(var d=1; d<=days; d++){
+      var iso = dpISO(y,m,d), cls = "dp-day";
+      if(iso === sel) cls += " sel";
+      if(iso === todayISO) cls += " today";
+      h += '<button type="button" class="'+cls+'" data-dpday="'+iso+'">'+d+'</button>';
+    }
+    $("dDatePop").innerHTML = h + '</div>';
+  }
+  function dpOpen(){
+    if(lockDPropose){ toast("日期提議已鎖定"); return; }
+    var iso = $("dDate").value;
+    if(iso){ var m = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/); if(m){ dpView = new Date(+m[1], +m[2]-1, 1); } }
+    dpBuild();
+    $("dDatePop").hidden = false;
+    $("dDateTrigger").classList.add("open");
+  }
+  function dpClose(){ $("dDatePop").hidden = true; $("dDateTrigger").classList.remove("open"); }
+
   function kindOf(p){ return p.kind === "date" ? "date" : "place"; }
 
   /* ── 報名 ─────────────────────────── */
@@ -2381,12 +2460,12 @@
   function addDate(){
     if(lockDPropose){ toast("日期提議已鎖定,不能再新增"); return; }
     var d = $("dDate").value;
-    if(!d){ toast("請選擇日期"); $("dDate").focus(); return; }
+    if(!d){ toast("請選擇日期"); dpOpen(); return; }
     var dup = places.some(function(p){ return kindOf(p) === "date" && p.name === d; });
     if(dup){ toast("已經有人提議這天了"); return; }
     places.push({ id:"tmp-"+Date.now(), name:d, note:"", by:myId,
                   seq:Date.now(), voters:[], count:0, kind:"date" });
-    $("dDate").value = "";
+    $("dDate").value = ""; dpSyncDisplay();
     renderPlaces();
     if(online){
       mutate({ action:"placeAdd", bill:billCode, name:d, note:"", by:myId, kind:"date" })
@@ -2847,7 +2926,19 @@
   });
   $("addPlaceBtn").addEventListener("click", addPlace);
   $("addDateBtn").addEventListener("click", addDate);
-  $("dDate").addEventListener("keydown", function(e){ if(e.key === "Enter") addDate(); });
+  $("dDateTrigger").addEventListener("click", function(e){
+    e.stopPropagation();
+    if($("dDatePop").hidden) dpOpen(); else dpClose();
+  });
+  $("dDatePop").addEventListener("click", function(e){
+    e.stopPropagation();
+    var nav = e.target.closest("[data-dp]");
+    if(nav){ dpView.setMonth(dpView.getMonth() + (nav.getAttribute("data-dp")==="next"?1:-1)); dpBuild(); return; }
+    var day = e.target.closest("[data-dpday]");
+    if(day){ $("dDate").value = day.getAttribute("data-dpday"); dpSyncDisplay(); dpClose(); }
+  });
+  document.addEventListener("click", function(){ if(!$("dDatePop").hidden) dpClose(); });
+  dpSyncDisplay();
   [$("pName"), $("pNote")].forEach(function(el){
     el.addEventListener("keydown", function(e){ if(e.key === "Enter") addPlace(); });
   });
