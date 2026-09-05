@@ -1035,7 +1035,7 @@
 </div>
 
 <div style="max-width:640px;margin:16px auto 0;text-align:center;font-size:11px;color:#9AA3B2;letter-spacing:.05em">
-  日期已中文化 · build 2026-10-12
+  日期已中文化 · 版本 2026-10-12
 </div>
 
 <script>
@@ -2614,7 +2614,6 @@
   }
 
   function votePlace(id){
-    if(lockPlace){ toast("投票已鎖定,結果已定案"); return; }
     if(!voter){ toast("請先在上方選擇你的名字"); $("voterSel").focus(); return; }
     // 剛提議、還沒拿到正式編號的項目,伺服器對不上,先擋下
     if(String(id).indexOf("tmp-") === 0){ toast("這間還在儲存中,稍等一下再投"); return; }
