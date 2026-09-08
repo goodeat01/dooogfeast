@@ -1598,8 +1598,8 @@
     var t = new Date(v).getTime();
     return !isNaN(t) && Date.now() >= t;
   }
-  function isLocked(which){
-    if(pastDL(which)) return true;
+  /* 純手動鎖狀態(不含截止時間) */
+  function manualLock(which){
     return which === "seat" ? lockSeat
          : which === "place" ? lockPlace
          : which === "propose" ? lockPropose
@@ -1611,10 +1611,14 @@
          : which === "menu" ? lockMenu
          : lockOrder;
   }
+  /* 是否鎖定:手動鎖 或 截止時間已過 */
+  function isLocked(which){
+    return pastDL(which) || manualLock(which);
+  }
 
   function toggleLock(which){
     if(!requireAdmin("鎖定與解鎖")) return;
-    var on = !isLocked(which);
+    var on = !manualLock(which);   // 只依手動鎖切換,不受截止時間影響,否則截止後永遠鎖不上
     setLock(which, on);
     toast(LOCK_NAME[which] + (on ? "已鎖定" : "已解鎖"));
   }
@@ -2538,8 +2542,8 @@
       return;
     }
 
-    var vLock = isDate ? lockDVote : lockPlace;        // 該區的投票鎖
-    var pLock = isDate ? lockDPropose : lockPropose;   // 該區的提議鎖
+    var vLock = isLocked(isDate ? "dvote" : "place");   // 該區的投票鎖(含截止時間)
+    var pLock = isLocked(isDate ? "dpropose" : "propose"); // 該區的提議鎖(含截止時間)
     function cnt(p){ return (typeof p.count === "number") ? p.count : p.voters.length; }
     var sorted = list.slice().sort(function(a,b){
       var d = cnt(b) - cnt(a);
@@ -2626,7 +2630,7 @@
     for(var t=0;t<places.length;t++){ if(places[t].id === id) target = places[t]; }
     if(!target) return;
     var k = kindOf(target);
-    if(k === "date" ? lockDVote : lockPlace){
+    if(isLocked(k === "date" ? "dvote" : "place")){
       toast((k === "date" ? "日期" : "餐廳") + "投票已鎖定,結果已定案"); return;
     }
 
