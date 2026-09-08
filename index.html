@@ -1701,6 +1701,7 @@
   }
 
   function setLock(which, on){
+    lockHold[which] = { on: on, until: Date.now() + 20000 };  // 保護期:避免同步瞬間打回
     if(which === "seat"){ lockSeat = on; }
     else if(which === "place"){ lockPlace = on; }
     else if(which === "propose"){ lockPropose = on; }
@@ -1712,6 +1713,7 @@
     else if(which === "menu"){ lockMenu = on; }
     else { lockOrder = on; }
     applyLockUI();
+    renderPlaces();   // 立即反映:投票鈕當下就 disabled,不必等下一次同步
     if(online){
       mutate({ action:"lock", bill:billCode, which:which, on:on })
         .catch(function(){ toast("鎖定同步失敗"); });
@@ -2852,6 +2854,43 @@
     });
   }
 
+  /* 鎖狀態容錯層:
+     ① 後端回應可能用不同大小寫欄位名(lockDvote / lock_dvote…),或某次回應漏傳該鎖,
+        導致同步時把鎖同步成 false。lockVal 會嘗試多種欄位名。
+     ② lockHold:本地剛按下的鎖給一段保護期,期間以本地為準,直到伺服器回應對齊,
+        避免鎖被自己的回應或落後的輪詢瞬間打回 false。 */
+  var lockHold = {};
+  var LOCK_KEYS = {
+    seat:["lockSeat","lockseat","lock_seat"],
+    place:["lockPlace","lockplace","lock_place"],
+    propose:["lockPropose","lockpropose","lock_propose"],
+    dpropose:["lockDPropose","lockDpropose","lockdpropose","lock_dpropose"],
+    dvote:["lockDVote","lockDvote","lockdvote","lock_dvote"],
+    rsvp:["lockRsvp","lockrsvp","lock_rsvp"],
+    name:["lockName","lockname","lock_name"],
+    info:["lockInfo","lockinfo","lock_info"],
+    menu:["lockMenu","lockmenu","lock_menu"],
+    order:["lockOrder","lockorder","lock_order"]
+  };
+  function lockVal(data, which){
+    var keys = LOCK_KEYS[which] || [];
+    for(var i=0;i<keys.length;i++){ if(data[keys[i]] != null) return !!data[keys[i]]; }
+    return false;
+  }
+  function resolveLock(data, which){
+    var sv = lockVal(data, which);
+    var h = lockHold[which];
+    if(h){
+      if(Date.now() < h.until){
+        if(sv === h.on){ delete lockHold[which]; }  // 伺服器已對齊 → 解除保護
+        else { return h.on; }                        // 保護期內以本地為準
+      }else{
+        delete lockHold[which];                        // 逾期 → 交還伺服器
+      }
+    }
+    return sv;
+  }
+
   /* 套用雲端資料:過期或寫入中一律不套用;內容沒變就不重繪(避免打字卡頓) */
   function applyData(data, issuedAt){
     if(!online || !data) return;
@@ -2859,25 +2898,35 @@
     if(pendingWrites > 0) return;
     if(issuedAt && issuedAt < lastMutation) return;
 
-    var sig = JSON.stringify([data.orders, data.svc, data.seats, data.lockOrder,
-                              data.lockSeat, data.lockInfo, data.lockMenu, data.lockName,
+    // 先把各鎖經「容錯欄位名 + 本地保護期」解析成實際要套用的值,
+    // 並用這些解析後的值做變更偵測(而非後端原始欄位),鎖才不會被漏傳的回應打回。
+    var L = {
+      order: resolveLock(data,"order"), seat: resolveLock(data,"seat"),
+      info: resolveLock(data,"info"), menu: resolveLock(data,"menu"),
+      name: resolveLock(data,"name"), place: resolveLock(data,"place"),
+      propose: resolveLock(data,"propose"), dpropose: resolveLock(data,"dpropose"),
+      dvote: resolveLock(data,"dvote"), rsvp: resolveLock(data,"rsvp")
+    };
+
+    var sig = JSON.stringify([data.orders, data.svc, data.seats, L.order,
+                              L.seat, L.info, L.menu, L.name,
                               data.place, data.time, data.menu, data.menuUrl,
-                              data.places, data.lockPlace, data.lockPropose,
-                              data.lockDPropose, data.lockDVote,
-                              data.rsvp, data.lockRsvp]);
+                              data.places, L.place, L.propose,
+                              L.dpropose, L.dvote,
+                              data.rsvp, L.rsvp]);
     if(sig === lastSig) return;
     lastSig = sig;
 
-    lockOrder = !!data.lockOrder;
-    lockSeat = !!data.lockSeat;
-    lockInfo = !!data.lockInfo;
-    lockMenu = !!data.lockMenu;
-    lockName = !!data.lockName;
-    lockPlace = !!data.lockPlace;
-    lockPropose = !!data.lockPropose;
-    lockDPropose = !!data.lockDPropose;
-    lockDVote = !!data.lockDVote;
-    lockRsvp = !!data.lockRsvp;
+    lockOrder    = L.order;
+    lockSeat     = L.seat;
+    lockInfo     = L.info;
+    lockMenu     = L.menu;
+    lockName     = L.name;
+    lockPlace    = L.place;
+    lockPropose  = L.propose;
+    lockDPropose = L.dpropose;
+    lockDVote    = L.dvote;
+    lockRsvp     = L.rsvp;
     DL.propose  = String(data.dlPropose  || "");
     DL.place    = String(data.dlPlace    || "");
     DL.dpropose = String(data.dlDPropose || "");
@@ -2914,27 +2963,27 @@
 
     // ── 分區重畫:只畫真正變動的區塊,避免每次同步整頁重繪 ──
     var s;
-    s = JSON.stringify([data.lockOrder,data.lockSeat,data.lockInfo,data.lockMenu,data.lockName,
-                        data.lockPlace,data.lockPropose,data.lockDPropose,data.lockDVote,data.lockRsvp,
+    s = JSON.stringify([L.order,L.seat,L.info,L.menu,L.name,
+                        L.place,L.propose,L.dpropose,L.dvote,L.rsvp,
                         data.dlPropose,data.dlPlace,data.dlDPropose,data.dlDVote,data.roster]);
     if(s !== sigLock){ sigLock = s; applyLockUI(); }
 
     s = JSON.stringify([data.places,data.votedTotal,data.rsvp,data.roster,
-                        data.lockPlace,data.lockPropose,data.lockDPropose,data.lockDVote,data.lockRsvp,
+                        L.place,L.propose,L.dpropose,L.dvote,L.rsvp,
                         data.dlPropose,data.dlPlace,data.dlDPropose,data.dlDVote]);
     if(s !== sigPlace){ sigPlace = s; if(page === "place") renderPlaces(); else dirtyPlace = true; }
 
-    s = JSON.stringify([data.place,data.time,data.lockInfo]);
+    s = JSON.stringify([data.place,data.time,L.info]);
     if(s !== sigInfo){ sigInfo = s; fillInfo(data.place, data.time); }   // 只更新輸入框值,很輕
 
-    s = JSON.stringify([data.menu,data.menuUrl,data.lockMenu]);
+    s = JSON.stringify([data.menu,data.menuUrl,L.menu]);
     if(s !== sigMenu){ sigMenu = s; lastMenu = data.menu; lastMenuUrl = data.menuUrl;
       if(page === "menu") fillMenu(data.menu, data.menuUrl); else dirtyMenu = true; }
 
-    s = JSON.stringify([data.orders,data.svc,data.lockOrder]);
+    s = JSON.stringify([data.orders,data.svc,L.order]);
     if(s !== sigOrder){ sigOrder = s; if(page === "order") render(); else dirtyOrder = true; }
 
-    s = JSON.stringify([data.seats,data.lockSeat,data.lockName]);
+    s = JSON.stringify([data.seats,L.seat,L.name]);
     if(s !== sigSeat){ sigSeat = s; if(page === "seat") renderSeats(); }
   }
 
