@@ -2828,7 +2828,7 @@
   var writeSeq = 0, lastAppliedSeq = 0;
   function mutate(payload){
     if(adminTok) payload.tok = adminTok;
-    if(voter) payload.who = voter;
+    if(voter && payload.who == null) payload.who = voter;  // who 已指定(如加來賓)就別蓋掉
     lastMutation = Date.now();
     pendingWrites++;
     var mySeq = ++writeSeq;
