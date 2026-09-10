@@ -2851,6 +2851,7 @@
       lastAppliedSeq = mySeq;
       if(data && data.rev){ lastRev = String(data.rev); lastFullAt = Date.now(); }
       applyData(data);
+      saveCache(data);
       return data;
     }, function(err){
       done();
@@ -2991,6 +2992,24 @@
     if(s !== sigSeat){ sigSeat = s; if(page === "seat") renderSeats(); }
   }
 
+  /* 本機快取:把最近一次的完整資料存起來,下次開頁先秒顯示,再由網路在背景更新。
+     菜單照片 base64 可能超過 localStorage 容量,存不下時自動去掉大圖再存其餘資料。 */
+  function cacheKey(){ return "feast-cache-" + FIXED_BILL; }
+  function saveCache(data){
+    if(!data) return;
+    try{ localStorage.setItem(cacheKey(), JSON.stringify(data)); return; }
+    catch(e){
+      try{
+        var c = {}; for(var k in data){ if(Object.prototype.hasOwnProperty.call(data,k)) c[k] = data[k]; }
+        c.menuUrl = "";
+        localStorage.setItem(cacheKey(), JSON.stringify(c));
+      }catch(e2){}
+    }
+  }
+  function loadCache(){
+    try{ return JSON.parse(localStorage.getItem(cacheKey()) || "null"); }catch(e){ return null; }
+  }
+
   /* 先問 rev(極輕量);沒變就不抓資料。
      另外每 15 秒仍強制完整抓一次,作為座位鎖逾時等「時間到期但無人寫入」情況的保險。 */
   function fetchFull(){
@@ -3002,6 +3021,7 @@
         lastFullAt = Date.now();
         if(data && data.rev) lastRev = String(data.rev);
         applyData(data, lastFullAt);
+        saveCache(data);
       });
   }
 
@@ -3232,6 +3252,13 @@
   renderSeats();
   renderPlaces();
   if(backendReady()){
+    // 先用上次的本機快取「秒開」,不必等網路第一包資料;連線後在背景更新(內容相同不重繪)
+    var cached = loadCache();
+    if(cached){
+      online = true; billCode = FIXED_BILL;
+      applyData(cached, Date.now());
+      render(); renderSeats(); renderPlaces(); renderRsvp();
+    }
     connect();
   }else{
     render();
