@@ -825,8 +825,8 @@
   <div class="card">
     <div class="toolbar">
       <div class="seg" id="seg">
-        <button data-mode="table" class="on">依桌號</button>
-        <button data-mode="seat">依座位</button>
+        <button data-mode="table">依桌號</button>
+        <button data-mode="seat" class="on">依座位</button>
         <button data-mode="name">依姓名</button>
         <button data-mode="none">全部</button>
       </div>
@@ -1167,7 +1167,7 @@
       };
     });
   }
-  var mode = "table";
+  var mode = "seat";
   var svc = localStorage.getItem("feast-svc") === "1";
   var SVC_RATE = 0.10;
   var editingId = null;
@@ -1503,13 +1503,22 @@
     var html = "";
     if(mode === "none"){
       html += records.map(rowHtml).join("");
-    }else if(mode === "seat"){
-      var bySeat = records.slice().sort(function(a,b){ return seatOrderKey(a) - seatOrderKey(b); });
-      html += bySeat.map(rowHtml).join("");
     }else{
-      var groups = mode === "table"
-        ? groupBy(function(r){ return r.table; })
-        : groupBy(function(r){ return r.name; });
+      // 依桌號 / 依座位:都照桌分組(有桌號標題分隔);依座位再把每桌內照座位序排、桌序也照座位圖
+      var groups;
+      if(mode === "table" || mode === "seat"){
+        groups = groupBy(function(r){ return r.table; });
+        if(mode === "seat"){
+          groups.forEach(function(g){
+            g.items.sort(function(a,b){ return seatOrderKey(a) - seatOrderKey(b); });
+          });
+          groups.sort(function(a,b){
+            return seatOrderKey(a.items[0]) - seatOrderKey(b.items[0]);
+          });
+        }
+      }else{
+        groups = groupBy(function(r){ return r.name; });
+      }
       // 勾了服務費,各組小計也一起含進去,直接照小計分帳;並確保相加等於總計
       var exact = groups.map(function(g){
         var sub = g.items.reduce(function(s,r){ return s + r.amt; },0);
@@ -1518,8 +1527,8 @@
       var shown = allocate(exact, payable);
       var subLabel = svc ? "小計含服務費" : "小計";
       groups.forEach(function(g, gi){
-        var label = mode==="table" ? "桌號 "+esc(g.key) : esc(g.key);
-        var tag = mode==="table"
+        var label = (mode==="table"||mode==="seat") ? "桌號 "+esc(g.key) : esc(g.key);
+        var tag = (mode==="table"||mode==="seat")
           ? '<span class="tag">'+g.items.length+' 筆</span>'
           : '';
         html += '<div class="group-head">'+
