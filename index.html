@@ -214,6 +214,24 @@
   .sp-total .sp-hint{margin-left:auto;font-size:12px;font-weight:600;color:var(--amber-deep)}
   .sp-total .sp-svc{font-size:13px;font-weight:800;color:var(--green)}
   .sp-total .sp-svc b{font-size:16px}
+  #fNote{
+    font-family:"Fredoka","Noto Sans TC",sans-serif;font-size:15px;color:var(--ink);
+    background:#fff;border:1.5px solid var(--line);border-radius:14px;
+    padding:10px 12px;width:100%;resize:vertical;line-height:1.5;
+  }
+  #fNote:focus{outline:none;border-color:var(--green);box-shadow:0 0 0 3px rgba(78,115,152,.20)}
+  #fNote:disabled{background:#F0EEEB;color:var(--muted);cursor:not-allowed}
+  #fNote::placeholder,#eNote::placeholder{color:var(--muted)}
+  #eNote{
+    font-family:"Fredoka","Noto Sans TC",sans-serif;font-size:15px;color:var(--ink);
+    background:#fff;border:1.5px solid var(--line);border-radius:14px;
+    padding:10px 12px;width:100%;resize:vertical;line-height:1.5;
+  }
+  #eNote:focus{outline:none;border-color:var(--green);box-shadow:0 0 0 3px rgba(78,115,152,.20)}
+  .what-note{
+    margin-top:4px;font-size:12.5px;font-weight:700;color:var(--amber-deep);
+    background:#FBF1E0;border-radius:8px;padding:3px 8px;display:inline-block;line-height:1.4;
+  }
   .setpick.locked{opacity:.5;pointer-events:none}
 
   /* 分頁 */
@@ -814,6 +832,10 @@
       <input id="fItem" type="hidden">
       <input id="fAmt" type="hidden">
       <datalist id="menuItemsList"></datalist>
+      <div class="field full" style="margin-top:14px">
+        <label for="fNote">備註 <span class="note">特殊需求,選填</span></label>
+        <textarea id="fNote" rows="2" maxlength="120" placeholder="例:牛排七分熟、不要香菜、對海鮮過敏…" autocomplete="off"></textarea>
+      </div>
       <label class="svc-toggle off" id="svcLine">
         <input type="checkbox" id="svcChk">
         <span class="t">全單加收服務費 10%</span>
@@ -1095,6 +1117,10 @@
     <div class="field full">
       <label for="eAmt">金額</label>
       <input id="eAmt" class="mono" type="number" inputmode="decimal" min="0" step="1" autocomplete="off">
+    </div>
+    <div class="field full">
+      <label for="eNote">備註 <span class="note">特殊需求,選填</span></label>
+      <textarea id="eNote" rows="2" maxlength="120" placeholder="例:牛排七分熟、不要香菜、對海鮮過敏…" autocomplete="off"></textarea>
     </div>
     <div class="m-actions">
       <button class="m-cancel" id="eCancel">取消</button>
@@ -1397,9 +1423,11 @@
     if(!fName.value.trim()){ toast(namesOfTable(fTable.value.trim()).length ? "請選擇姓名" : "此桌座位圖尚未填姓名"); fName.focus(); return; }
     if(!setComplete()){ toast("套餐還有分類沒選喔"); return; }
     // 填入既有 add() 使用的隱藏欄位,沿用原本的新增/同步流程
-    $("fItem").value = buildSetSummary();
+    var note = $("fNote").value.trim();
+    $("fItem").value = buildSetSummary() + (note ? "｜🔖備註:" + note : "");
     $("fAmt").value  = String(setTotal());
     add();
+    $("fNote").value = "";
     resetSetPicker();
   }
 
@@ -1427,7 +1455,10 @@
     editingId = id;
     fillTableOptions($("eTable"), r.table === "未分桌" ? "" : r.table);
     fillNameOptions($("eName"), $("eTable").value, r.name === "—" ? "" : r.name);
-    $("eItem").value  = r.item;
+    var full = r.item || "", note = "", MK = "｜🔖備註:", mi = full.indexOf(MK);
+    if(mi >= 0){ note = full.slice(mi + MK.length); full = full.slice(0, mi); }
+    $("eItem").value  = full;
+    $("eNote").value  = note;
     $("eAmt").value   = r.amt;
     $("editMask").hidden = false;
     $("eItem").focus();
@@ -1437,11 +1468,13 @@
     var table = $("eTable").value.trim();
     var name  = $("eName").value.trim();
     var item  = $("eItem").value.trim();
+    var note  = $("eNote").value.trim();
     var amt   = parseFloat($("eAmt").value);
     if(!table){ toast("請選擇桌號"); $("eTable").focus(); return; }
     if(!name){ toast("請選擇姓名"); $("eName").focus(); return; }
     if(!item){ toast("請填寫餐點內容"); $("eItem").focus(); return; }
     if(isNaN(amt) || amt < 0){ toast("請填寫正確金額"); $("eAmt").focus(); return; }
+    if(note) item += "｜🔖備註:" + note;
     var data = { table: table, name: name, item: item, amt: amt };
     if(online){
       var id = editingId;
@@ -1991,7 +2024,7 @@
     ob.textContent = lockOrder ? "🔒 已鎖定" : "🔓 鎖定";
     ob.classList.toggle("on", lockOrder);
 
-    ["fTable","fName","fItem","fAmt","addBtn"].forEach(function(id){
+    ["fTable","fName","fItem","fAmt","fNote","addBtn"].forEach(function(id){
       $(id).disabled = lockOrder;
     });
     $("setPicker").classList.toggle("locked", lockOrder);
@@ -2959,11 +2992,17 @@
     var who = r.name === "—" ? "（未填姓名）" : r.name;
     var pos = seatPosOf(r.table, r.name);
     var posBadge = pos ? '<span class="pos-badge mono">'+esc(pos)+'</span>' : '';
+    // 把備註從餐點內容拆出來,單獨一行標示
+    var full = r.item || "", note = "", MK = "｜🔖備註:", mi = full.indexOf(MK);
+    if(mi >= 0){ note = full.slice(mi + MK.length); full = full.slice(0, mi); }
     var secondary, primary;
-    if(mode === "name"){ secondary = tbl; primary = r.item; }
-    else { secondary = who; primary = r.item; }
+    if(mode === "name"){ secondary = tbl; primary = full; }
+    else { secondary = who; primary = full; }
     return '<div class="item'+(r.pending ? ' pending' : '')+'">'+
-      '<div class="i-main"><div class="who">'+posBadge+esc(secondary)+'</div><div class="what">'+esc(primary)+'</div></div>'+
+      '<div class="i-main"><div class="who">'+posBadge+esc(secondary)+'</div>'+
+        '<div class="what">'+esc(primary)+'</div>'+
+        (note ? '<div class="what-note">🔖 '+esc(note)+'</div>' : '')+
+      '</div>'+
       '<div class="amt mono">$'+money(r.amt)+'</div>'+
       (lockOrder || r.pending ? '' :
         '<div class="ops">'+
