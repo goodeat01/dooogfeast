@@ -1528,7 +1528,7 @@
     $("svcFeeLine").hidden = !svc;
     $("svcChk").checked = svc;
     $("svcLine").classList.toggle("off", !svc);
-    $("svcHint").textContent = svc ? "+$" + money(svcFee) : "未加收";
+    $("svcHint").textContent = svc ? "結帳整單計入" : "未加收";
     $("countLbl").textContent = count + " 筆";
     $("metaLine").innerHTML = count
       ? "共 <b>"+nTables+"</b> 桌 · <b>"+count+"</b> 筆 · 總計 <b>$"+money(payable)+"</b>"
