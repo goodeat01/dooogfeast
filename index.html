@@ -160,6 +160,60 @@
   .add-btn:active{transform:translateY(3px);box-shadow:0 0 0 #3F6288}
   .add-btn:disabled{box-shadow:0 3px 0 #CFCCC6}
 
+  /* 套餐選擇器 */
+  .setpick{margin-top:14px}
+  .sp-types{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+  .sp-type{
+    font-family:inherit;cursor:pointer;background:#fff;border:1.5px solid var(--line);
+    border-radius:14px;padding:10px 8px;display:flex;flex-direction:column;gap:3px;align-items:center;
+    transition:.15s;color:var(--ink);
+  }
+  .sp-type:hover{border-color:var(--green)}
+  .sp-type.on{border-color:var(--green);background:var(--green-soft);box-shadow:0 0 0 3px rgba(78,115,152,.18)}
+  .sp-type .nm{font-size:13px;font-weight:800;line-height:1.2;text-align:center}
+  .sp-type .pr{font-size:12px;color:var(--muted);font-weight:700}
+  .sp-type.on .pr{color:var(--green)}
+  .sp-note{margin-top:10px;font-size:12.5px;color:var(--muted);background:#F6F4F1;border-radius:12px;padding:9px 12px;line-height:1.5}
+  .sp-course{margin-top:14px}
+  .sp-clabel{font-size:14px;font-weight:900;color:var(--ink);margin-bottom:8px;letter-spacing:.04em}
+  .sp-clabel .pick1,.sp-clabel .opt{
+    font-size:11px;font-weight:700;color:var(--green);background:var(--green-soft);
+    border-radius:8px;padding:2px 7px;margin-left:6px;letter-spacing:0;
+  }
+  .sp-clabel .opt{color:var(--muted);background:#EFEDEA}
+  .sp-opts{display:flex;flex-wrap:wrap;gap:7px}
+  .sp-opt,.sp-addon{
+    font-family:inherit;cursor:pointer;background:#fff;border:1.5px solid var(--line);
+    border-radius:12px;padding:8px 12px;font-size:13.5px;font-weight:600;color:var(--ink);
+    transition:.12s;display:inline-flex;align-items:center;gap:6px;
+  }
+  .sp-opt:hover,.sp-addon:hover{border-color:var(--green)}
+  .sp-opt.on{border-color:var(--green);background:var(--green);color:#FBFAF9;font-weight:800}
+  .sp-opt .add{font-size:11px;color:var(--amber-deep);font-weight:800}
+  .sp-opt.on .add{color:#FDE9C8}
+  .sp-addon{border-style:dashed;color:var(--green);font-weight:700}
+  .sp-addon .add{font-size:11px;color:var(--muted);font-weight:700}
+  .sp-chosen{margin-top:10px;display:flex;flex-direction:column;gap:6px}
+  .sp-crow{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--ink);
+    background:#F6F4F1;border-radius:10px;padding:7px 10px}
+  .sp-crow>span:first-child{flex:1}
+  .sp-qty{display:inline-flex;align-items:center;gap:8px}
+  .sp-qty button{
+    width:24px;height:24px;border-radius:8px;border:none;cursor:pointer;
+    background:var(--green-soft);color:var(--green);font-weight:900;font-size:14px;line-height:1;
+  }
+  .sp-qty button:hover{background:var(--green);color:#fff}
+  .sp-qty b{min-width:14px;text-align:center}
+  .sp-del{border:none;background:transparent;color:var(--muted);cursor:pointer;font-size:13px}
+  .sp-del:hover{color:var(--danger)}
+  .sp-total{
+    margin-top:16px;display:flex;align-items:center;gap:10px;font-size:15px;font-weight:800;color:var(--ink);
+    border-top:1.5px dashed var(--line);padding-top:12px;
+  }
+  .sp-total b{font-size:19px;color:var(--green)}
+  .sp-total .sp-hint{margin-left:auto;font-size:12px;font-weight:600;color:var(--amber-deep)}
+  .setpick.locked{opacity:.5;pointer-events:none}
+
   /* 分頁 */
   .tabs{display:flex;gap:8px;margin:18px 0}
   .tabs button{
@@ -559,6 +613,17 @@
   .seat.locked .sp{color:var(--amber-deep)}
   @keyframes pulse{50%{opacity:.55}}
   @media(prefers-reduced-motion:reduce){.seat.locked{animation:none}}
+  .seat .pos{
+    font-family:"Fredoka","Noto Sans TC",sans-serif;font-weight:900;letter-spacing:.02em;
+    color:var(--green);line-height:1;margin-bottom:1px;opacity:.9;
+  }
+  .seat.filled .pos{color:#FDE9C8}
+  .seat.locked .pos{color:var(--amber-deep)}
+  .pos-badge{
+    display:inline-block;font-weight:900;font-size:11px;letter-spacing:.02em;
+    color:#FBFAF9;background:var(--green);border-radius:7px;padding:2px 6px;margin-right:7px;
+    vertical-align:middle;
+  }
   .seat .nm{
     font-weight:700;color:var(--muted);line-height:1.1;
     text-align:center;word-break:break-all;overflow:hidden;max-height:2.3em;
@@ -741,21 +806,18 @@
         </div>
       </div>
       <div class="conn-hint" id="orderHint" style="margin-top:9px"></div>
-      <div class="field full">
-        <label for="fItem">餐點內容 <em>*</em><span class="note">請用繁體字</span></label>
-        <input id="fItem" list="menuItemsList" placeholder="輸入,或從菜單選" autocomplete="off">
-        <datalist id="menuItemsList"></datalist>
-      </div>
-      <div class="field full">
-        <label for="fAmt">金額 <em>*</em></label>
-        <input id="fAmt" class="mono" type="number" inputmode="decimal" min="0" step="1" placeholder="60" autocomplete="off">
-      </div>
+      <!-- 套餐選擇器:每人自選一份套餐,各分類擇一,可升級/加點 -->
+      <div id="setPicker" class="setpick"></div>
+      <!-- 沿用既有 add() 的欄位;餐點摘要與總價由套餐選擇器填入 -->
+      <input id="fItem" type="hidden">
+      <input id="fAmt" type="hidden">
+      <datalist id="menuItemsList"></datalist>
       <label class="svc-toggle off" id="svcLine">
         <input type="checkbox" id="svcChk">
-        <span class="t">加收服務費 10%</span>
+        <span class="t">全單加收服務費 10%</span>
         <span class="v mono" id="svcHint">未加收</span>
       </label>
-      <button class="add-btn" id="addBtn">＋ 新增一筆</button>
+      <button class="add-btn" id="addBtn">＋ 送出這份套餐</button>
     </div>
   </div>
 
@@ -764,6 +826,7 @@
     <div class="toolbar">
       <div class="seg" id="seg">
         <button data-mode="table" class="on">依桌號</button>
+        <button data-mode="seat">依座位</button>
         <button data-mode="name">依姓名</button>
         <button data-mode="none">全部</button>
       </div>
@@ -937,6 +1000,10 @@
             <input id="sCount" class="mono" type="number" min="1" max="20" step="1" placeholder="10" autocomplete="off">
           </div>
         </div>
+        <div class="field full">
+          <label for="sLoc">位置 <span class="note">選填,如 R-1-1</span></label>
+          <input id="sLoc" class="mono" placeholder="R-1-1" autocomplete="off">
+        </div>
         <button class="add-btn" id="addTableBtn">＋ 新增一桌</button>
         <div class="conn-hint" style="margin-top:10px">建好桌之後,點上面的座位填姓名。這裡填的桌號與姓名,就是「點餐」頁可以選的選項。</div>
       </div>
@@ -1035,7 +1102,7 @@
 </div>
 
 <div style="max-width:640px;margin:16px auto 0;text-align:center;font-size:11px;color:#9AA3B2;letter-spacing:.05em">
-  日期已中文化 · 版本 2026-10-12
+  套餐點餐版 · 更新 2026-09-19
 </div>
 
 <script>
@@ -1202,6 +1269,132 @@
     fItem.focus();
   }
 
+  /* ── 陶板屋 和風洋食 套餐資料(取自菜單) ── */
+  var DRINKS = [
+    {n:"金桔檸檬冰沙(冰)"},{n:"冰耶加雪菲(冰)"},{n:"柚香氣泡飲(冰)"},{n:"黑糖厚奶茶(冰)"},
+    {n:"熱耶加雪菲(熱)"},{n:"穀物國寶茶(熱)"},{n:"岩鹽玄米奶茶(熱)"}
+  ];
+  var MENU_SETS = [
+    { id:"washoku", name:"和風洋食套餐", price:698, courses:[
+      { key:"main", label:"主餐", opts:[
+        {n:"香蒜瓦片牛排"},{n:"和牛漢堡排 X 炙烤牛排"},{n:"巨串炙烤骰子牛"},
+        {n:"酥烤魚排 X 炙烤牛排"},{n:"酥烤味噌奶醬魚排"},{n:"蒜香鴨腿 X 酥烤魚排"},
+        {n:"迷迭香烤半雞"},{n:"蜜蘋薑汁燒豚排"},
+        {n:"升級·酥烤金賞鴨胸", add:88},{n:"升級·激量黑胡椒法蘭克牛排", add:128},
+        {n:"升級·半熟炸蛋雪山菲力", add:168}
+      ]},
+      { key:"salad", label:"沙拉", opts:[
+        {n:"花園沙拉佐炙烤雞腿"},{n:"跌倒的燻鮭馬鈴薯"},{n:"繽紛橙香水果沙拉"}
+      ]},
+      { key:"appetizer", label:"前菜", opts:[
+        {n:"鐵鍋醬燒洋芋杏鮑菇"},{n:"暖暖海味茶碗蒸"},{n:"跳舞的章魚燒", add:39}
+      ]},
+      { key:"soup", label:"湯品", opts:[
+        {n:"蕃茄牛肉燉湯"},{n:"巧達雞肉濃湯"},{n:"昆布海鮮清湯"}
+      ]},
+      { key:"side", label:"和食", opts:[
+        {n:"蒲燒鰻魚飯"},{n:"起司照燒牛丼飯"}
+      ]},
+      { key:"dessert", label:"甜點", opts:[
+        {n:"黑糖珍珠冰淇淋"},{n:"日式焦糖布丁"},{n:"冷月紫米"}
+      ]},
+      { key:"drink", label:"飲品", opts:DRINKS }
+    ]},
+    { id:"veg", name:"蔬食套餐", price:698,
+      note:"內含 季節水果沙拉、醬烤時蔬、主廚例湯、串烤時蔬佐季節主食、冷月紫米",
+      courses:[ { key:"drink", label:"飲品", opts:DRINKS } ] },
+    { id:"kids", name:"淘氣小屋餐", price:288,
+      note:"揚物、蔬果沙拉、雞肉主餐、蘋果汁", courses:[] }
+  ];
+  var MENU_ADDONS = [
+    {n:"跳舞的章魚燒(單點)", p:169},{n:"和食(單點)", p:150},
+    {n:"沙拉/前菜/湯品/甜點/飲品(單點)", p:130},{n:"雞肉主餐(單點)", p:200},
+    {n:"揚物·蔬果沙拉·蘋果汁(單點)", p:60}
+  ];
+
+  var setState = { setId:"washoku", choices:{}, addons:[] };
+  function curSet(){ for(var i=0;i<MENU_SETS.length;i++){ if(MENU_SETS[i].id===setState.setId) return MENU_SETS[i]; } return MENU_SETS[0]; }
+  function chosenOpt(course){
+    var idx = setState.choices[course.key];
+    return (idx==null) ? null : course.opts[idx];
+  }
+  function setTotal(){
+    var s = curSet(), t = s.price;
+    s.courses.forEach(function(c){ var o = chosenOpt(c); if(o && o.add) t += o.add; });
+    setState.addons.forEach(function(a){ t += a.p * a.qty; });
+    return t;
+  }
+  function setComplete(){
+    var s = curSet();
+    for(var i=0;i<s.courses.length;i++){ if(chosenOpt(s.courses[i])==null) return false; }
+    return true;
+  }
+  function renderSetPicker(){
+    var s = curSet(), h = "";
+    // 套餐種類
+    h += '<div class="sp-types">';
+    MENU_SETS.forEach(function(m){
+      h += '<button type="button" class="sp-type'+(m.id===setState.setId?' on':'')+'" data-set="'+m.id+'">'+
+             '<span class="nm">'+esc(m.name)+'</span><span class="pr mono">$'+m.price+'</span></button>';
+    });
+    h += '</div>';
+    if(s.note){ h += '<div class="sp-note">'+esc(s.note)+'</div>'; }
+    // 各分類擇一
+    s.courses.forEach(function(c){
+      h += '<div class="sp-course"><div class="sp-clabel">'+esc(c.label)+' <span class="pick1">擇一</span></div><div class="sp-opts">';
+      c.opts.forEach(function(o, i){
+        var on = setState.choices[c.key] === i;
+        h += '<button type="button" class="sp-opt'+(on?' on':'')+'" data-course="'+c.key+'" data-opt="'+i+'">'+
+               esc(o.n)+(o.add?'<b class="add">+$'+o.add+'</b>':'')+'</button>';
+      });
+      h += '</div></div>';
+    });
+    // 加點(選填)
+    h += '<div class="sp-course"><div class="sp-clabel">加點 <span class="opt">選填</span></div><div class="sp-opts">';
+    MENU_ADDONS.forEach(function(a, i){
+      h += '<button type="button" class="sp-addon" data-addon="'+i+'">＋ '+esc(a.n)+'<b class="add">$'+a.p+'</b></button>';
+    });
+    h += '</div>';
+    if(setState.addons.length){
+      h += '<div class="sp-chosen">';
+      setState.addons.forEach(function(a, i){
+        h += '<div class="sp-crow"><span>'+esc(a.n)+'</span>'+
+             '<span class="sp-qty"><button type="button" data-adec="'+i+'">−</button><b>'+a.qty+'</b>'+
+             '<button type="button" data-ainc="'+i+'">＋</button></span>'+
+             '<span class="mono">$'+(a.p*a.qty)+'</span>'+
+             '<button type="button" class="sp-del" data-adel="'+i+'">✕</button></div>';
+      });
+      h += '</div>';
+    }
+    h += '</div>';
+    // 小計
+    h += '<div class="sp-total">這份小計 <b class="mono">$'+money(setTotal())+'</b>'+
+         '<span class="sp-hint">'+(setComplete()?'':'還有分類尚未選')+'</span></div>';
+    $("setPicker").innerHTML = h;
+  }
+  function buildSetSummary(){
+    var s = curSet(), parts = [s.name];
+    s.courses.forEach(function(c){ var o = chosenOpt(c); if(o) parts.push(c.label+":"+o.n); });
+    var base = parts.join("｜");
+    if(setState.addons.length){
+      base += "｜加點:" + setState.addons.map(function(a){ return a.n+(a.qty>1?"×"+a.qty:""); }).join("、");
+    }
+    return base;
+  }
+  function resetSetPicker(){ setState.choices = {}; setState.addons = []; renderSetPicker(); }
+
+  function submitSet(){
+    if(lockOrder){ toast("點餐已鎖定,需解鎖才能修改"); return; }
+    if(!fTable.value.trim()){ toast(seats.length ? "請選擇桌號" : "請先到座位圖新增桌號"); fTable.focus(); return; }
+    if(!fName.value.trim()){ toast(namesOfTable(fTable.value.trim()).length ? "請選擇姓名" : "此桌座位圖尚未填姓名"); fName.focus(); return; }
+    if(!setComplete()){ toast("套餐還有分類沒選喔"); return; }
+    // 填入既有 add() 使用的隱藏欄位,沿用原本的新增/同步流程
+    $("fItem").value = buildSetSummary();
+    $("fAmt").value  = String(setTotal());
+    add();
+    resetSetPicker();
+  }
+
   function del(id){
     if(lockOrder){ toast("點餐已鎖定,需解鎖才能修改"); return; }
     if(online){
@@ -1303,13 +1496,16 @@
     if(count === 0){
       list.innerHTML =
         '<div class="empty"><div class="big">🍽️</div>'+
-        '<p>還沒有點餐紀錄<br>在上方填寫桌號、姓名、餐點與金額開始</p></div>';
+        '<p>還沒有點餐紀錄<br>在上方選好桌號、姓名,挑一份套餐送出</p></div>';
       return;
     }
 
     var html = "";
     if(mode === "none"){
       html += records.map(rowHtml).join("");
+    }else if(mode === "seat"){
+      var bySeat = records.slice().sort(function(a,b){ return seatOrderKey(a) - seatOrderKey(b); });
+      html += bySeat.map(rowHtml).join("");
     }else{
       var groups = mode === "table"
         ? groupBy(function(r){ return r.table; })
@@ -1347,6 +1543,37 @@
     var t = 0;
     records.forEach(function(r){ if(r.name === name) t += r.amt; });
     return t;
+  }
+
+  /* 座位明確位置碼:桌號-座位序(例 1-1),上餐照座位用。POS_PREFIX 留空=不加前綴 */
+  var POS_PREFIX = "";
+  function posCode(table, seatIdx){ return (POS_PREFIX ? POS_PREFIX + "-" : "") + table + "-" + (seatIdx + 1); }
+  function seatPosOf(table, name){
+    if(!name || name === "—") return "";
+    var ti, si;
+    for(ti=0; ti<seats.length; ti++){                       // 先在同桌找
+      if(String(seats[ti].table) !== String(table)) continue;
+      for(si=0; si<seats[ti].seats.length; si++){
+        if(seats[ti].seats[si].n === name) return posCode(seats[ti].table, si);
+      }
+    }
+    for(ti=0; ti<seats.length; ti++){                       // 找不到再全場找
+      for(si=0; si<seats[ti].seats.length; si++){
+        if(seats[ti].seats[si].n === name) return posCode(seats[ti].table, si);
+      }
+    }
+    return "";
+  }
+  // 座位排序鍵:桌序在前、座位序在後,讓上餐照位置順
+  function seatOrderKey(r){
+    for(var ti=0; ti<seats.length; ti++){
+      if(String(seats[ti].table) !== String(r.table)) continue;
+      for(var si=0; si<seats[ti].seats.length; si++){
+        if(seats[ti].seats[si].n === r.name) return ti*1000 + si;
+      }
+      return ti*1000 + 999;
+    }
+    return 999999;
   }
 
   function renderSeats(){
@@ -1393,7 +1620,8 @@
         var inner = lockedByOther
           ? '<span class="nm" style="font-size:max(7px,'+fName+'cqw)">✎</span>'+
             '<span class="sp" style="font-size:max(6px,'+fSpent+'cqw)">填寫中</span>'
-          : '<span class="nm" style="font-size:max(7px,'+fName+'cqw)">'+(nm? esc(nm) : (i+1))+'</span>'+
+          : '<span class="pos" style="font-size:max(6px,'+fSpent+'cqw)">'+esc(posCode(t.table, i))+'</span>'+
+            '<span class="nm" style="font-size:max(7px,'+fName+'cqw)">'+(nm? esc(nm) : "空位")+'</span>'+
             (sp ? '<span class="sp" style="font-size:max(6px,'+fSpent+'cqw)">$'+money(sp)+'</span>' : '');
         html += '<div class="'+cls+'" data-t="'+ti+'" data-s="'+i+'" '+
                 (lockedByOther ? 'title="其他人正在填寫" ' : '')+
@@ -1749,6 +1977,7 @@
     ["fTable","fName","fItem","fAmt","addBtn"].forEach(function(id){
       $(id).disabled = lockOrder;
     });
+    $("setPicker").classList.toggle("locked", lockOrder);
     $("svcChk").disabled = lockOrder || !isAdmin;   // 服務費影響整張帳單,由管理者決定
     $("svcLine").classList.toggle("locked-off", lockOrder);
     $("clearBtn").disabled = lockOrder;
@@ -2711,11 +2940,13 @@
   function rowHtml(r){
     var tbl = r.table === "未分桌" ? "未分桌" : "桌 " + r.table;
     var who = r.name === "—" ? "（未填姓名）" : r.name;
+    var pos = seatPosOf(r.table, r.name);
+    var posBadge = pos ? '<span class="pos-badge mono">'+esc(pos)+'</span>' : '';
     var secondary, primary;
     if(mode === "name"){ secondary = tbl; primary = r.item; }
     else { secondary = who; primary = r.item; }
     return '<div class="item'+(r.pending ? ' pending' : '')+'">'+
-      '<div><div class="who">'+esc(secondary)+'</div><div class="what">'+esc(primary)+'</div></div>'+
+      '<div class="i-main"><div class="who">'+posBadge+esc(secondary)+'</div><div class="what">'+esc(primary)+'</div></div>'+
       '<div class="amt mono">$'+money(r.amt)+'</div>'+
       (lockOrder || r.pending ? '' :
         '<div class="ops">'+
@@ -3067,8 +3298,24 @@
   }
 
   // 事件
-  $("addBtn").addEventListener("click", add);
-  $("fItem").addEventListener("input", function(){ pickMenuItem($("fItem"), $("fAmt")); });
+  $("addBtn").addEventListener("click", submitSet);
+  $("setPicker").addEventListener("click", function(e){
+    var b = e.target.closest("button"); if(!b) return;
+    var v;
+    if((v = b.getAttribute("data-set")) != null){ setState.setId = v; setState.choices = {}; setState.addons = []; renderSetPicker(); return; }
+    if(b.getAttribute("data-course") != null){
+      setState.choices[b.getAttribute("data-course")] = +b.getAttribute("data-opt"); renderSetPicker(); return;
+    }
+    if((v = b.getAttribute("data-addon")) != null){
+      var a = MENU_ADDONS[+v], f = null;
+      setState.addons.forEach(function(x){ if(x.n===a.n) f = x; });
+      if(f){ f.qty++; } else { setState.addons.push({ n:a.n, p:a.p, qty:1 }); }
+      renderSetPicker(); return;
+    }
+    if((v = b.getAttribute("data-ainc")) != null){ setState.addons[+v].qty++; renderSetPicker(); return; }
+    if((v = b.getAttribute("data-adec")) != null){ var x=setState.addons[+v]; if(--x.qty<=0) setState.addons.splice(+v,1); renderSetPicker(); return; }
+    if((v = b.getAttribute("data-adel")) != null){ setState.addons.splice(+v,1); renderSetPicker(); return; }
+  });
   $("eItem").addEventListener("input", function(){ pickMenuItem($("eItem"), $("eAmt")); });
   $("fTable").addEventListener("change", function(){
     this.classList.toggle("empty", !this.value);
@@ -3081,8 +3328,8 @@
   $("eTable").addEventListener("change", function(){
     fillNameOptions($("eName"), this.value);
   });
-  [fTable,fName,fItem,fAmt].forEach(function(el){
-    el.addEventListener("keydown", function(e){ if(e.key==="Enter") add(); });
+  [fTable,fName].forEach(function(el){
+    el.addEventListener("keydown", function(e){ if(e.key==="Enter") submitSet(); });
   });
   $("seg").addEventListener("click", function(e){
     var b = e.target.closest("button"); if(!b) return;
@@ -3249,6 +3496,7 @@
   }catch(e){}
   applyAdminUI();
   updateConnUI();
+  renderSetPicker();
   renderSeats();
   renderPlaces();
   if(backendReady()){
