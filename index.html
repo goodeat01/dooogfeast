@@ -212,6 +212,8 @@
   }
   .sp-total b{font-size:19px;color:var(--green)}
   .sp-total .sp-hint{margin-left:auto;font-size:12px;font-weight:600;color:var(--amber-deep)}
+  .sp-total .sp-svc{font-size:13px;font-weight:800;color:var(--green)}
+  .sp-total .sp-svc b{font-size:16px}
   .setpick.locked{opacity:.5;pointer-events:none}
 
   /* 分頁 */
@@ -1168,7 +1170,7 @@
     });
   }
   var mode = "seat";
-  var svc = localStorage.getItem("feast-svc") === "1";
+  var svc = (localStorage.getItem("feast-svc") === null) ? true : (localStorage.getItem("feast-svc") === "1");
   var SVC_RATE = 0.10;
   var editingId = null;
 
@@ -1307,6 +1309,10 @@
       note:"揚物、蔬果沙拉、雞肉主餐、蘋果汁", courses:[] }
   ];
   var MENU_ADDONS = [
+    {n:"主餐·串烤時蔬佐季節主食(單點)", p:440},
+    {n:"酥烤金賞鴨胸(單點)", p:528},
+    {n:"激量黑胡椒法蘭克牛排(單點)", p:568},
+    {n:"半熟炸蛋雪山菲力(單點)", p:608},
     {n:"跳舞的章魚燒(單點)", p:169},{n:"和食(單點)", p:150},
     {n:"沙拉/前菜/湯品/甜點/飲品(單點)", p:130},{n:"雞肉主餐(單點)", p:200},
     {n:"揚物·蔬果沙拉·蘋果汁(單點)", p:60}
@@ -1367,8 +1373,10 @@
       h += '</div>';
     }
     h += '</div>';
-    // 小計
-    h += '<div class="sp-total">這份小計 <b class="mono">$'+money(setTotal())+'</b>'+
+    // 小計(若有開服務費,一併顯示這份含服務費的總費用)
+    var base = setTotal();
+    var svcPart = svc ? '<span class="sp-svc">含服務費 <b class="mono">$'+money(Math.round(base*(1+SVC_RATE)))+'</b></span>' : '';
+    h += '<div class="sp-total">這份小計 <b class="mono">$'+money(base)+'</b>'+svcPart+
          '<span class="sp-hint">'+(setComplete()?'':'還有分類尚未選')+'</span></div>';
     $("setPicker").innerHTML = h;
   }
@@ -3226,7 +3234,7 @@
       if(page === "menu") fillMenu(data.menu, data.menuUrl); else dirtyMenu = true; }
 
     s = JSON.stringify([data.orders,data.svc,L.order]);
-    if(s !== sigOrder){ sigOrder = s; if(page === "order") render(); else dirtyOrder = true; }
+    if(s !== sigOrder){ sigOrder = s; renderSetPicker(); if(page === "order") render(); else dirtyOrder = true; }
 
     s = JSON.stringify([data.seats,L.seat,L.name]);
     if(s !== sigSeat){ sigSeat = s; if(page === "seat") renderSeats(); }
@@ -3359,6 +3367,7 @@
       localStorage.setItem("feast-svc", svc ? "1" : "0");
     }
     render();
+    renderSetPicker();
   });
   $("eSave").addEventListener("click", saveEdit);
   $("eCancel").addEventListener("click", closeEdit);
