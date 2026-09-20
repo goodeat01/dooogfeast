@@ -1598,28 +1598,30 @@
   /* 座位明確位置碼:桌號-座位序(例 1-1),上餐照座位用。POS_PREFIX 留空=不加前綴 */
   var POS_PREFIX = "";
   function posCode(table, seatIdx){ return (POS_PREFIX ? POS_PREFIX + "-" : "") + table + "-" + (seatIdx + 1); }
+  function normName(s){ return String(s == null ? "" : s).replace(/\s+/g, "").trim(); }  // 去空白比對,避免全形/多餘空白對不上
   function seatPosOf(table, name){
     if(!name || name === "—") return "";
-    var ti, si;
+    var key = normName(name), ti, si;
     for(ti=0; ti<seats.length; ti++){                       // 先在同桌找
       if(String(seats[ti].table) !== String(table)) continue;
       for(si=0; si<seats[ti].seats.length; si++){
-        if(seats[ti].seats[si].n === name) return posCode(seats[ti].table, si);
+        if(normName(seats[ti].seats[si].n) === key) return posCode(seats[ti].table, si);
       }
     }
     for(ti=0; ti<seats.length; ti++){                       // 找不到再全場找
       for(si=0; si<seats[ti].seats.length; si++){
-        if(seats[ti].seats[si].n === name) return posCode(seats[ti].table, si);
+        if(normName(seats[ti].seats[si].n) === key) return posCode(seats[ti].table, si);
       }
     }
     return "";
   }
   // 座位排序鍵:桌序在前、座位序在後,讓上餐照位置順
   function seatOrderKey(r){
+    var key = normName(r.name);
     for(var ti=0; ti<seats.length; ti++){
       if(String(seats[ti].table) !== String(r.table)) continue;
       for(var si=0; si<seats[ti].seats.length; si++){
-        if(seats[ti].seats[si].n === r.name) return ti*1000 + si;
+        if(normName(seats[ti].seats[si].n) === key) return ti*1000 + si;
       }
       return ti*1000 + 999;
     }
