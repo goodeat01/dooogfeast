@@ -1246,6 +1246,8 @@
   function money(n){
     return Math.round(n).toLocaleString("en-US");
   }
+  // 顯示用金額:有收服務費時直接含 10%(四捨五入),否則原價
+  function dispAmt(n){ return svc ? Math.round(n * (1 + SVC_RATE)) : n; }
   function toast(msg){
     var t=$("toast"); t.textContent=msg; t.classList.add("show");
     clearTimeout(t._t); t._t=setTimeout(function(){ t.classList.remove("show"); },1900);
@@ -1675,7 +1677,7 @@
             '<span class="sp" style="font-size:max(6px,'+fSpent+'cqw)">填寫中</span>'
           : '<span class="pos" style="font-size:max(6px,'+fSpent+'cqw)">'+esc(posCode(t.table, i))+'</span>'+
             '<span class="nm" style="font-size:max(7px,'+fName+'cqw)">'+(nm? esc(nm) : "空位")+'</span>'+
-            (sp ? '<span class="sp" style="font-size:max(6px,'+fSpent+'cqw)">$'+money(sp)+'</span>' : '');
+            (sp ? '<span class="sp" style="font-size:max(6px,'+fSpent+'cqw)">$'+money(dispAmt(sp))+'</span>' : '');
         html += '<div class="'+cls+'" data-t="'+ti+'" data-s="'+i+'" '+
                 (lockedByOther ? 'title="其他人正在填寫" ' : '')+
                 'style="left:'+x.toFixed(2)+'%;top:'+y.toFixed(2)+'%;'+
@@ -3006,7 +3008,7 @@
         '<div class="what">'+esc(primary)+'</div>'+
         (note ? '<div class="what-note">🔖 '+esc(note)+'</div>' : '')+
       '</div>'+
-      '<div class="amt mono">$'+money(r.amt)+'</div>'+
+      '<div class="amt mono">$'+money(dispAmt(r.amt))+'</div>'+
       (lockOrder || r.pending ? '' :
         '<div class="ops">'+
           '<button class="edit" data-edit="'+r.id+'" title="編輯">✎</button>'+
@@ -3278,7 +3280,7 @@
     s = JSON.stringify([data.orders,data.svc,L.order]);
     if(s !== sigOrder){ sigOrder = s; renderSetPicker(); if(page === "order") render(); else dirtyOrder = true; }
 
-    s = JSON.stringify([data.seats,L.seat,L.name]);
+    s = JSON.stringify([data.seats,L.seat,L.name,data.svc]);
     if(s !== sigSeat){ sigSeat = s; if(page === "seat") renderSeats(); }
   }
 
@@ -3410,6 +3412,7 @@
     }
     render();
     renderSetPicker();
+    renderSeats();
   });
   $("eSave").addEventListener("click", saveEdit);
   $("eCancel").addEventListener("click", closeEdit);
