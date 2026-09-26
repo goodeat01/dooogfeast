@@ -3019,8 +3019,10 @@
 
   function exportCSV(){
     if(!records.length){ toast("沒有資料可匯出"); return; }
-    var rows = [["桌號","姓名","餐點","金額"]];
-    records.forEach(function(r){ rows.push([r.table, r.name, r.item, r.amt]); });
+    var rows = [["座位","桌號","姓名","餐點","金額"]];
+    // 明細照座位順序(桌序→席序)排,方便照座位上餐
+    records.slice().sort(function(a,b){ return seatOrderKey(a) - seatOrderKey(b); })
+      .forEach(function(r){ rows.push([seatPosOf(r.table, r.name), r.table, r.name, r.item, r.amt]); });
     var grand = records.reduce(function(s,r){ return s + r.amt; },0);
 
     // 各桌小計(與畫面一致:勾了服務費就含進去,且相加等於總計)
@@ -3031,19 +3033,19 @@
     });
     var target = svc ? grand + Math.round(grand * SVC_RATE) : grand;
     var shownCsv = allocate(exactCsv, target);
-    rows.push(["","","",""]);
+    rows.push(["","","","",""]);
     gs.forEach(function(g, gi){
-      rows.push(["桌號 "+g.key, "", svc ? "小計含服務費" : "小計", shownCsv[gi]]);
+      rows.push(["", "桌號 "+g.key, "", svc ? "小計含服務費" : "小計", shownCsv[gi]]);
     });
 
-    rows.push(["","","",""]);
+    rows.push(["","","","",""]);
     if(svc){
       var fee = Math.round(grand * SVC_RATE);
-      rows.push(["","","餐點小計", grand]);
-      rows.push(["","","服務費 10%", fee]);
-      rows.push(["","","總計", grand + fee]);
+      rows.push(["","","","餐點小計", grand]);
+      rows.push(["","","","服務費 10%", fee]);
+      rows.push(["","","","總計", grand + fee]);
     }else{
-      rows.push(["","","總計", grand]);
+      rows.push(["","","","總計", grand]);
     }
     var csv = rows.map(function(row){
       return row.map(function(c){
