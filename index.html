@@ -219,6 +219,12 @@
     background:#fff;border:1.5px solid var(--line);border-radius:14px;
     padding:10px 12px;width:100%;resize:vertical;line-height:1.5;
   }
+  .allergy-warn{
+    font-size:13px;font-weight:800;color:#9A3412;background:#FFF4E5;
+    border:1.5px solid #F5C08A;border-radius:10px;padding:7px 10px;margin:4px 0 8px;line-height:1.45;
+  }
+  .sp-group{width:100%;font-size:12px;font-weight:900;color:var(--muted);margin:6px 0 0}
+  .sp-group:first-child{margin-top:0}
   #fNote:focus{outline:none;border-color:var(--green);box-shadow:0 0 0 3px rgba(78,115,152,.20)}
   #fNote:disabled{background:#F0EEEB;color:var(--muted);cursor:not-allowed}
   #fNote::placeholder,#eNote::placeholder{color:var(--muted)}
@@ -838,7 +844,8 @@
       <datalist id="menuItemsList"></datalist>
       <div class="field full" style="margin-top:14px">
         <label for="fNote">備註 <span class="note">特殊需求,選填,請用繁體字</span></label>
-        <textarea id="fNote" rows="2" maxlength="120" placeholder="例:牛排七分熟、不要香菜、對海鮮過敏…" autocomplete="off"></textarea>
+        <div class="allergy-warn">⚠️ 有無甲殼類過敏?或是其他過敏原不能吃、忌口食材,請寫在這裡</div>
+        <textarea id="fNote" rows="2" maxlength="120" placeholder="例:甲殼類過敏、不吃牛、不要香菜…" autocomplete="off"></textarea>
       </div>
       <button class="add-btn" id="addBtn">＋ 送出這份套餐</button>
       <label class="svc-toggle off" id="svcLine" style="margin-top:14px">
@@ -1312,10 +1319,57 @@
        ]}
      MENU_ADDONS 範例: {n:"加點品項", p:100}
   */
-  var MENU_SETS = [];
+  /* 三款套餐共用:湯品、甜品、主食(價格以 F1 和牛為基準,A5 和牛 +200) */
+  var COMMON_NOTE = "前菜:小漬物、水果起司沙拉、烏魚子軟絲塔、出汁茶碗蒸｜SHOT:紫蘇梅冰沙瓦(無酒精)";
+  var C_SOUP = { key:"soup", label:"湯品", opts:[ {n:"地雞蛤蠣豆腐湯"}, {n:"現沖和牛清湯", add:160} ] };
+  var C_RICE = { key:"rice", label:"主食", opts:[ {n:"香米飯"}, {n:"香米飯+溫泉玉子", add:30} ] };
+  var C_DESSERT = { key:"dessert", label:"甜品", opts:[ {n:"玄米焙茶奶酪"}, {n:"當日精選冰淇淋", add:30} ] };
+  var MENU_SETS = [
+    { id:"sakika", name:"咲花 SAKIKA", price:1580,
+      note:"主餐肉品為關西壽喜燒,搭配烤物是鰻魚跟蔬菜｜職人炭烤:塩烤白鰻｜鋤燒野菜、炭烤野菜｜" + COMMON_NOTE,
+      courses:[
+        { key:"main", label:"鋤燒主餐(關西壽喜燒)", opts:[
+          {n:"日本F1和牛|兩品"}, {n:"日本純血A5和牛|兩品", add:200}
+        ]},
+        C_SOUP, C_RICE, C_DESSERT
+      ]},
+    { id:"kurobishi", name:"黑菱 KUROBISHI", price:1580,
+      note:"全關西壽喜燒套餐｜鋤燒野菜｜" + COMMON_NOTE,
+      courses:[
+        { key:"main", label:"鋤燒主餐(關西壽喜燒)", opts:[
+          {n:"日本F1和牛|三品"}, {n:"日本純血A5和牛|三品", add:200}
+        ]},
+        C_SOUP, C_RICE, C_DESSERT
+      ]},
+    { id:"shirakaba", name:"白樺 SHIRAKABA", price:1580,
+      note:"全燒烤套餐｜職人炭烤:塩烤白鰻｜炭烤野菜｜" + COMMON_NOTE,
+      courses:[
+        { key:"main", label:"燒烤主餐", opts:[
+          {n:"日本F1和牛|三品"}, {n:"究好豬|三品"}, {n:"日本純血A5和牛|三品", add:200}
+        ]},
+        C_SOUP, C_RICE, C_DESSERT
+      ]}
+  ];
+  /* 單點品項:g=分類,s=顯示名稱,p=價格(n 會自動組成「分類·名稱」,避免不同分類同名) */
   var MENU_ADDONS = [];
+  (function(groups){
+    groups.forEach(function(gr){
+      gr[1].forEach(function(it){ MENU_ADDONS.push({ g:gr[0], s:it[0], p:it[1], n:gr[0]+"·"+it[0] }); });
+    });
+  })([
+    ["鋤燒肉品", [["A5紐約客",880],["A5板腱",880],["厚切A5肩小排",880],["A5鯉魚管",580],["F1板腱",680],["A5臀肉心",680]]],
+    ["炭烤肉品", [["A5羽下",880],["A5板腱",880],["厚切A5肩小排",880],["A5切落",420],["F1板腱",680],["厚切A5臀肉心",680],
+                  ["水果醬烤牛肋條",580],["水果醬烤橫隔膜",680],["水果醬烤F1切落",280],["究好豬肩卷芯",520],["究好豬肋條",520],
+                  ["黑蜜豬梅花",480],["黑蜜豬松阪",480],["帶皮香草豬五花",520],["塩烤白鰻",520]]],
+    ["鋤燒野菜", [["厚切櫛瓜",128],["香菇",88],["洋蔥圈",88],["手工豆腐",88],["手工腐皮",88],["蒜苗",68],["奶油白菜",68]]],
+    ["炭烤野菜", [["帶皮日本山藥",128],["厚切櫛瓜",128],["帶鬚玉米筍",88],["香菇",78],["厚切杏鮑菇",78]]],
+    ["KIZUNA單品", [["水果起司沙拉",128],["烏魚子軟絲塔🦐",368],["出汁茶碗蒸🦐",128],["地雞蛤蠣豆腐湯",138],["現沖和牛清湯",380],
+                  ["梅漬小蕃茄",88],["柚子大根漬",88],["黃金泡菜",88]]],
+    ["飲品", [["雪碧",60],["可口可樂",60],["可爾必思",60],["阿里山金萱茶",60]]],
+    ["氣泡調飲", [["可爾必思蘇打",80],["蘋果醋蘇打",99],["水蜜桃醋蘇打",99],["梅子醋蘇打",135],["蔓越莓醋蘇打",135]]]
+  ]);
 
-  var setState = { setId:"", choices:{}, addons:[] };
+  var setState = { setId:(MENU_SETS[0] ? MENU_SETS[0].id : ""), choices:{}, addons:[] };
   var EMPTY_SET = { id:"", name:"", price:0, courses:[] };
   function curSet(){ for(var i=0;i<MENU_SETS.length;i++){ if(MENU_SETS[i].id===setState.setId) return MENU_SETS[i]; } return MENU_SETS[0] || EMPTY_SET; }
   function chosenOpt(course){
@@ -1343,7 +1397,9 @@
     h += '<div class="sp-types">';
     MENU_SETS.forEach(function(m){
       h += '<button type="button" class="sp-type'+(m.id===setState.setId?' on':'')+'" data-set="'+m.id+'">'+
-             '<span class="nm">'+esc(m.name)+'</span><span class="pr mono">$'+m.price+'</span></button>';
+             '<span class="nm">'+esc(m.name)+'</span><span class="pr mono">$'+money(m.price)+
+             (m.courses.some(function(c){ return c.key==="main" && c.opts.some(function(o){ return o.add; }); }) ? ' 起' : '')+
+             '</span></button>';
     });
     h += '</div>';
     if(s.note){ h += '<div class="sp-note">'+esc(s.note)+'</div>'; }
@@ -1358,9 +1414,12 @@
       h += '</div></div>';
     });
     // 加點(選填)
-    h += '<div class="sp-course"><div class="sp-clabel">加點 <span class="opt">選填</span></div><div class="sp-opts">';
+    if(MENU_ADDONS.length){
+    h += '<div class="sp-course"><div class="sp-clabel">單點加點 <span class="opt">選填</span></div><div class="sp-opts">';
+    var lastG = null;
     MENU_ADDONS.forEach(function(a, i){
-      h += '<button type="button" class="sp-addon" data-addon="'+i+'">＋ '+esc(a.n)+'<b class="add">$'+a.p+'</b></button>';
+      if(a.g && a.g !== lastG){ h += '<div class="sp-group">'+esc(a.g)+'</div>'; lastG = a.g; }
+      h += '<button type="button" class="sp-addon" data-addon="'+i+'">＋ '+esc(a.s || a.n)+'<b class="add">$'+a.p+'</b></button>';
     });
     h += '</div>';
     if(setState.addons.length){
@@ -1375,6 +1434,7 @@
       h += '</div>';
     }
     h += '</div>';
+    }
     // 小計(若有開服務費,一併顯示這份含服務費的總費用)
     var base = setTotal();
     var svcPart = svc ? '<span class="sp-svc">含服務費 <b class="mono">$'+money(Math.round(base*(1+SVC_RATE)))+'</b></span>' : '';
