@@ -603,11 +603,10 @@
   .tbl-ops .mv:hover:not(:disabled){border-color:var(--green);color:var(--green)}
   .tbl-ops .mv:disabled{opacity:.3;cursor:not-allowed}
   .round{
-    position:relative;width:100%;aspect-ratio:1;container-type:inline-size;
+    position:relative;width:100%;container-type:inline-size;
   }
   .round .top{
-    position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
-    width:38cqw;height:38cqw;border-radius:50%;
+    position:absolute;border-radius:10px;
     background:var(--green-soft);border:2px dashed var(--green);
     display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
     box-shadow:inset 0 -3px 0 rgba(78,115,152,.12);
@@ -615,7 +614,7 @@
   .round .top .t1{font-size:max(12px,7cqw);font-weight:900;color:var(--green);line-height:1}
   .round .top .t2{font-size:max(8px,3.6cqw);font-weight:700;color:var(--muted)}
   .seat{
-    position:absolute;border-radius:50%;transform:translate(-50%,-50%);cursor:pointer;
+    position:absolute;border-radius:18%;transform:translate(-50%,-50%);cursor:pointer;
     border:2px solid var(--line);background:#fff;
     display:flex;flex-direction:column;align-items:center;justify-content:center;
     padding:2px;overflow:hidden;
@@ -1300,55 +1299,19 @@
     fItem.focus();
   }
 
-  /* ── 陶板屋 和風洋食 套餐資料(取自菜單) ── */
-  var DRINKS = [
-    {n:"金桔檸檬冰沙(冰)"},{n:"冰耶加雪菲(冰)"},{n:"柚香氣泡飲(冰)"},{n:"黑糖厚奶茶(冰)"},
-    {n:"熱耶加雪菲(熱)"},{n:"穀物國寶茶(熱)"},{n:"岩鹽玄米奶茶(熱)"}
-  ];
-  var MENU_SETS = [
-    { id:"washoku", name:"和風洋食套餐", price:698, courses:[
-      { key:"main", label:"主餐", opts:[
-        {n:"香蒜瓦片牛排"},{n:"和牛漢堡排 X 炙烤牛排"},{n:"巨串炙烤骰子牛"},
-        {n:"酥烤魚排 X 炙烤牛排"},{n:"酥烤味噌奶醬魚排"},{n:"蒜香鴨腿 X 酥烤魚排"},
-        {n:"迷迭香烤半雞"},{n:"蜜蘋薑汁燒豚排"},
-        {n:"升級·酥烤金賞鴨胸", add:88},{n:"升級·激量黑胡椒法蘭克牛排", add:128},
-        {n:"升級·半熟炸蛋雪山菲力", add:168}
-      ]},
-      { key:"salad", label:"沙拉", opts:[
-        {n:"花園沙拉佐炙烤雞腿"},{n:"跌倒的燻鮭馬鈴薯"},{n:"繽紛橙香水果沙拉"}
-      ]},
-      { key:"appetizer", label:"前菜", opts:[
-        {n:"鐵鍋醬燒洋芋杏鮑菇"},{n:"暖暖海味茶碗蒸"},{n:"跳舞的章魚燒", add:39}
-      ]},
-      { key:"soup", label:"湯品", opts:[
-        {n:"蕃茄牛肉燉湯"},{n:"巧達雞肉濃湯"},{n:"昆布海鮮清湯"}
-      ]},
-      { key:"side", label:"和食", opts:[
-        {n:"蒲燒鰻魚飯"},{n:"起司照燒牛丼飯"}
-      ]},
-      { key:"dessert", label:"甜點", opts:[
-        {n:"黑糖珍珠冰淇淋"},{n:"日式焦糖布丁"},{n:"冷月紫米"}
-      ]},
-      { key:"drink", label:"飲品", opts:DRINKS }
-    ]},
-    { id:"veg", name:"蔬食套餐", price:698,
-      note:"內含 季節水果沙拉、醬烤時蔬、主廚例湯、串烤時蔬佐季節主食、冷月紫米",
-      courses:[ { key:"drink", label:"飲品", opts:DRINKS } ] },
-    { id:"kids", name:"淘氣小屋餐", price:288,
-      note:"揚物、蔬果沙拉、雞肉主餐、蘋果汁", courses:[] }
-  ];
-  var MENU_ADDONS = [
-    {n:"主餐·串烤時蔬佐季節主食(單點)", p:440},
-    {n:"酥烤金賞鴨胸(單點)", p:528},
-    {n:"激量黑胡椒法蘭克牛排(單點)", p:568},
-    {n:"半熟炸蛋雪山菲力(單點)", p:608},
-    {n:"跳舞的章魚燒(單點)", p:169},{n:"和食(單點)", p:150},
-    {n:"沙拉/前菜/湯品/甜點/飲品(單點)", p:130},{n:"雞肉主餐(單點)", p:200},
-    {n:"揚物·蔬果沙拉·蘋果汁(單點)", p:60}
-  ];
+  /* ── 套餐資料(目前清空;要加菜單時照下面格式填入) ──
+     MENU_SETS 範例:
+       { id:"a", name:"A 套餐", price:500, note:"說明(選填)", courses:[
+           { key:"main", label:"主餐", opts:[ {n:"牛排"}, {n:"雞腿", add:50} ] }
+       ]}
+     MENU_ADDONS 範例: {n:"加點品項", p:100}
+  */
+  var MENU_SETS = [];
+  var MENU_ADDONS = [];
 
-  var setState = { setId:"washoku", choices:{}, addons:[] };
-  function curSet(){ for(var i=0;i<MENU_SETS.length;i++){ if(MENU_SETS[i].id===setState.setId) return MENU_SETS[i]; } return MENU_SETS[0]; }
+  var setState = { setId:"", choices:{}, addons:[] };
+  var EMPTY_SET = { id:"", name:"", price:0, courses:[] };
+  function curSet(){ for(var i=0;i<MENU_SETS.length;i++){ if(MENU_SETS[i].id===setState.setId) return MENU_SETS[i]; } return MENU_SETS[0] || EMPTY_SET; }
   function chosenOpt(course){
     var idx = setState.choices[course.key];
     return (idx==null) ? null : course.opts[idx];
@@ -1365,6 +1328,10 @@
     return true;
   }
   function renderSetPicker(){
+    if(!MENU_SETS.length){
+      $("setPicker").innerHTML = '<div class="sp-note">目前還沒有菜單</div>';
+      return;
+    }
     var s = curSet(), h = "";
     // 套餐種類
     h += '<div class="sp-types">';
@@ -1424,6 +1391,7 @@
     if(lockOrder){ toast("點餐已鎖定,需解鎖才能修改"); return; }
     if(!fTable.value.trim()){ toast(seats.length ? "請選擇桌號" : "請先到座位圖新增桌號"); fTable.focus(); return; }
     if(!fName.value.trim()){ toast(namesOfTable(fTable.value.trim()).length ? "請選擇姓名" : "此桌座位圖尚未填姓名"); fName.focus(); return; }
+    if(!MENU_SETS.length){ toast("目前還沒有菜單"); return; }
     if(!setComplete()){ toast("套餐還有分類沒選喔"); return; }
     // 填入既有 add() 使用的隱藏欄位,沿用原本的新增/同步流程
     var note = $("fNote").value.trim();
@@ -1654,19 +1622,28 @@
             '<button class="mv" data-down="'+ti+'"'+(ti===seats.length-1?' disabled':'')+' title="下移">▼</button>'+
             '<button class="x" data-rmt="'+ti+'" title="刪除此桌">✕</button>'+
           '</span>' : '')+
-        '</div>'+
-        '<div class="round">'+
-          '<div class="top"><span class="t1">'+esc(t.table)+'</span><span class="t2">'+t.seats.length+' 席</span></div>';
+        '</div>';
+      // 長方形桌:座位分上下兩排,順時針編號(上排左→右,下排右→左)。單位皆為 cqw(容器寬度 %)
       var n = t.seats.length;
-      var R = 38;                                   // 座位圈半徑(容器寬度的 %)
-      // 座位直徑:取「不超過上限」與「圓周均分後不重疊」兩者的小值
-      var S = Math.min(21, (2 * Math.PI * R / n) * 0.86);
+      var kTop = Math.ceil(n / 2), kBot = n - kTop;
+      var colW = 88 / Math.max(kTop, 1);            // 每個座位分到的寬度
+      var S = Math.min(21, colW * 0.86);             // 座位邊長
       var fName = (S * 0.21).toFixed(2);
       var fSpent = (S * 0.16).toFixed(2);
+      var pad = 2, gap = 2.5;
+      var tblH = Math.max(16, S * 0.9);
+      var yTop = pad + S/2;
+      var tblY = pad + S + gap;
+      var yBot = tblY + tblH + gap + S/2;
+      var H = (kBot ? yBot + S/2 : tblY + tblH) + pad;
+      html += '<div class="round" style="aspect-ratio:100/'+H.toFixed(2)+'">'+
+          '<div class="top" style="left:6cqw;width:88cqw;top:'+tblY.toFixed(2)+'cqw;height:'+tblH.toFixed(2)+'cqw">'+
+          '<span class="t1">'+esc(t.table)+'</span><span class="t2">'+t.seats.length+' 席</span></div>';
+      var botOff = 6 + (kTop - kBot) * colW / 2;     // 下排較少時置中
       for(var i=0;i<n;i++){
-        var ang = (Math.PI*2*i/n) - Math.PI/2;
-        var x = 50 + R*Math.cos(ang);
-        var y = 50 + R*Math.sin(ang);
+        var x, y;
+        if(i < kTop){ x = 6 + colW*(i+0.5); y = yTop; }
+        else { var j = kBot - 1 - (i - kTop); x = botOff + colW*(j+0.5); y = yBot; }
         var st = t.seats[i];
         var nm = st.n;
         var lockedByOther = st.lk && st.lk !== myId;
@@ -1680,7 +1657,7 @@
             (sp ? '<span class="sp" style="font-size:max(6px,'+fSpent+'cqw)">$'+money(dispAmt(sp))+'</span>' : '');
         html += '<div class="'+cls+'" data-t="'+ti+'" data-s="'+i+'" '+
                 (lockedByOther ? 'title="其他人正在填寫" ' : '')+
-                'style="left:'+x.toFixed(2)+'%;top:'+y.toFixed(2)+'%;'+
+                'style="left:'+x.toFixed(2)+'cqw;top:'+y.toFixed(2)+'cqw;'+
                 'width:'+S.toFixed(2)+'cqw;height:'+S.toFixed(2)+'cqw">'+
           inner+
         '</div>';
