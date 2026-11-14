@@ -581,6 +581,10 @@
   }
   #seatArea .empty{grid-column:1/-1}
   .tbl{min-width:0}
+  .tbl.long{grid-column:1/-1}
+  .round .top.strip{flex-direction:row;gap:8px}
+  .round .top.strip .t1{font-size:max(12px,3.6cqw)}
+  .round .top.strip .t2{font-size:max(8px,1.8cqw)}
   .tbl-head{display:flex;align-items:center;justify-content:space-between;gap:4px;padding:6px 2px 4px}
   .tbl-head .n{font-size:13px;font-weight:900;color:var(--green);min-width:0;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -1146,6 +1150,8 @@
 
   var KEY = "feast-orders-v1";
   var SEAT_KEY = "feast-seats-v1";
+  /* 這些桌號畫成長條桌(佔滿整列),要增減直接改這裡 */
+  var LONG_TABLES = ["A", "B", "C"];
   var records = load();
   var seats = loadSeats();
   var page = "place";
@@ -1611,7 +1617,8 @@
     var html = "";
     seats.forEach(function(t, ti){
       var filled = t.seats.filter(function(s){ return s.n; }).length;
-      html += '<div class="tbl">'+
+      var isLong = LONG_TABLES.indexOf(String(t.table)) >= 0;
+      html += '<div class="tbl'+(isLong?' long':'')+'">'+
         '<div class="tbl-head">'+
           ((isAdmin && !lockSeat)
             ? '<button class="n edit" data-ren="'+ti+'" title="點擊改桌號">桌號 '+esc(t.table)+
@@ -1625,19 +1632,21 @@
         '</div>';
       // 長方形桌:座位分上下兩排,順時針編號(上排左→右,下排右→左)。單位皆為 cqw(容器寬度 %)
       var n = t.seats.length;
-      var kTop = Math.ceil(n / 2), kBot = n - kTop;
+      // 長條桌:所有座位排成一排(不對坐);一般桌:上下兩排
+      var kTop = isLong ? n : Math.ceil(n / 2), kBot = n - kTop;
       var colW = 88 / Math.max(kTop, 1);            // 每個座位分到的寬度
-      var S = Math.min(21, colW * 0.86);             // 座位邊長
+      // 長條桌佔滿整列,座位較小、桌面扁長
+      var S = Math.min(isLong ? 13 : 21, colW * 0.86);  // 座位邊長
       var fName = (S * 0.21).toFixed(2);
       var fSpent = (S * 0.16).toFixed(2);
-      var pad = 2, gap = 2.5;
-      var tblH = Math.max(16, S * 0.9);
+      var pad = isLong ? 1.2 : 2, gap = isLong ? 1.5 : 2.5;
+      var tblH = isLong ? 7 : Math.max(16, S * 0.9);
       var yTop = pad + S/2;
       var tblY = pad + S + gap;
       var yBot = tblY + tblH + gap + S/2;
       var H = (kBot ? yBot + S/2 : tblY + tblH) + pad;
       html += '<div class="round" style="aspect-ratio:100/'+H.toFixed(2)+'">'+
-          '<div class="top" style="left:6cqw;width:88cqw;top:'+tblY.toFixed(2)+'cqw;height:'+tblH.toFixed(2)+'cqw">'+
+          '<div class="top'+(isLong?' strip':'')+'" style="left:6cqw;width:88cqw;top:'+tblY.toFixed(2)+'cqw;height:'+tblH.toFixed(2)+'cqw">'+
           '<span class="t1">'+esc(t.table)+'</span><span class="t2">'+t.seats.length+' 席</span></div>';
       var botOff = 6 + (kTop - kBot) * colW / 2;     // 下排較少時置中
       for(var i=0;i<n;i++){
