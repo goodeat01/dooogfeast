@@ -576,7 +576,7 @@
 
   /* 座位圖 */
   #seatArea{
-    display:grid;grid-template-columns:repeat(2,1fr);
+    display:grid;grid-template-columns:1fr;
     gap:8px 10px;padding:8px 14px 16px;
   }
   #seatArea .empty{grid-column:1/-1}
@@ -1636,17 +1636,18 @@
       var kTop = isLong ? n : Math.ceil(n / 2), kBot = n - kTop;
       var colW = 88 / Math.max(kTop, 1);            // 每個座位分到的寬度
       // 長條桌佔滿整列,座位較小、桌面扁長
-      var S = Math.min(isLong ? 13 : 21, colW * 0.86);  // 座位邊長
+      // 每桌佔滿一整列,座位大小統一
+      var S = Math.min(13, colW * 0.86);              // 座位邊長
       var fName = (S * 0.21).toFixed(2);
       var fSpent = (S * 0.16).toFixed(2);
-      var pad = isLong ? 1.2 : 2, gap = isLong ? 1.5 : 2.5;
-      var tblH = isLong ? 7 : Math.max(16, S * 0.9);
+      var pad = 1.2, gap = 1.5;
+      var tblH = isLong ? 7 : 11;
       var yTop = pad + S/2;
       var tblY = pad + S + gap;
       var yBot = tblY + tblH + gap + S/2;
       var H = (kBot ? yBot + S/2 : tblY + tblH) + pad;
       html += '<div class="round" style="aspect-ratio:100/'+H.toFixed(2)+'">'+
-          '<div class="top'+(isLong?' strip':'')+'" style="left:6cqw;width:88cqw;top:'+tblY.toFixed(2)+'cqw;height:'+tblH.toFixed(2)+'cqw">'+
+          '<div class="top strip" style="left:6cqw;width:88cqw;top:'+tblY.toFixed(2)+'cqw;height:'+tblH.toFixed(2)+'cqw">'+
           '<span class="t1">'+esc(t.table)+'</span><span class="t2">'+t.seats.length+' 席</span></div>';
       var botOff = 6 + (kTop - kBot) * colW / 2;     // 下排較少時置中
       for(var i=0;i<n;i++){
